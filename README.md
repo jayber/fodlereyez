@@ -11,11 +11,12 @@ I took the approach of creating proxy traits for any
 
 And then used trait objects in my client code which would be either 
 * production types that run external library code, or
-* [mockall](https://github.com/asomers/mockall) mocks
+* [mockall](https://github.com/asomers/mockall) mocks during test
 
 I would be interested in finding out if there are better ways of achieving the same for unit tests that are quicker and 
 less verbose. It took ***way*** longer to set up the mocks and write the tests than the actual logic code. And they take 
-up way more code.
+up way more code. This doesn't mean they are bad, but it reinforces the idea that unit testing can be a massive hassle and
+expensive.
 
 Also, the current version is only tested by virtue of the mocks receiving their expectations, rather than actual functionality.
 This is a fault really. To be meaningful they should verify return values.
