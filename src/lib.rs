@@ -6,37 +6,64 @@ pub mod analysis {
     #[cfg(test)]
     use mockall::*;
 
-    pub fn run(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> Result<(), Box<dyn Error>> {
-        let mut root = calc_length(current_dir, file_operations)?;
-        root.children.sort_by(|a, b| b.len.partial_cmp(&a.len).unwrap());
-        println!("This directory {}", root);
-        Ok(())
+    use crate::analysis::byteable::Byteable;
+
+    pub fn run(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryTree {
+        let mut root = calc_directory_tree(current_dir, file_operations);
+        root.children.sort_by(|a, b| b.len.val.partial_cmp(&a.len.val).unwrap());
+        root
     }
 
-    fn calc_length(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> Result<DirectoryTree, Box<dyn Error>> {
+    fn calc_directory_tree(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryTree {
         let mut total = 0u64;
         let mut sub_directories: Vec<DirectoryTree> = vec![];
-        for entry in file_operations.read_dir(&current_dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            let is_dir = entry.file_type().unwrap().is_dir();
-            if is_dir {
-                let child = calc_length(path, file_operations)?;
-                total += child.len;
-                sub_directories.push(child);
-            } else {
-                let metadata = file_operations.metadata(&path)?;
-                total += metadata.len();
+        let read_dir = file_operations.read_dir(&current_dir);
+        match read_dir {
+            Err(e) => {
+                eprintln!("error in read_dir: {}", e);
+            }
+            Ok(read_dir) => {
+                for entry in read_dir {
+                    let entry = entry.expect("error in getting entry");
+                    let path = entry.path();
+                    let type_of_file = entry.file_type().expect("error getting file type");
+
+                    let is_dir = type_of_file.is_dir();
+                    if is_dir {
+                        let child = calc_directory_tree(path, file_operations);
+
+                        total += child.len.val;
+                        sub_directories.push(child);
+                    } else {
+                        match file_operations.metadata(&path) {
+                            Ok(metadata) => {
+                                total += metadata.len();
+                            }
+                            Err(e) => {
+                                eprintln!("error in metadata: {}", e);
+                            }
+                        }
+                    }
+                }
             }
         }
-        Ok(DirectoryTree { name: current_dir.clone(), children: sub_directories, len: total })
+
+        DirectoryTree {
+            name: current_dir.clone(),
+            children: sub_directories,
+            len: Byteable {
+                val: total
+            },
+        }
     }
 
+    mod byteable;
+
     #[derive(Debug)]
-    struct DirectoryTree {
-        name: PathBuf,
-        children: Vec<DirectoryTree>,
-        len: u64,
+    pub struct DirectoryTree {
+        pub name: PathBuf,
+        pub children: Vec<DirectoryTree>,
+        pub len: Byteable,
     }
 
     impl fmt::Display for DirectoryTree {
@@ -51,8 +78,8 @@ pub mod analysis {
 
     #[cfg_attr(test, automock)]
     pub trait FileSystemProxy {
-        fn read_dir(&self, directory: &PathBuf) -> std::io::Result<Box<dyn ReadDirProxy<Item=Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>>>>;
-        fn metadata(&self, path: &PathBuf) -> std::io::Result<Box<dyn MetadataProxy>>;
+        fn read_dir(&self, directory: &PathBuf) -> Result<Box<dyn ReadDirProxy<Item=Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>>>, Box<dyn Error>>;
+        fn metadata(&self, path: &PathBuf) -> Result<Box<dyn MetadataProxy>, Box<dyn Error>>;
     }
 
     pub trait ReadDirProxy: Iterator {}
@@ -72,7 +99,6 @@ pub mod analysis {
     pub trait MetadataProxy {
         fn len(&self) -> u64;
     }
-
 
     #[cfg(test)]
     mod tests {
@@ -114,7 +140,6 @@ pub mod analysis {
         fn set_expect(num_directories: usize, num_files: usize) -> Result<(), Box<dyn Error>> {
             let mut mock_file_operations = MockFileSystemProxy::new();
             let dir = PathBuf::new();
-            // let buf = dir.clone();
             let mut seq_read_dir = Sequence::new();
             expect_read_dir(num_directories, num_files, &mut mock_file_operations, dir.clone(), &mut seq_read_dir);
             if num_files > 0 {
@@ -125,7 +150,7 @@ pub mod analysis {
                 });
             }
 
-            run(dir, &mock_file_operations)?;
+            run(dir, &mock_file_operations);
             Ok(())
         }
 
