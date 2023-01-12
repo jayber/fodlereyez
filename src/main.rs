@@ -11,8 +11,8 @@ mod tui;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let buf = args.get(1).map(|arg| PathBuf::from(arg)).unwrap_or(env::current_dir().expect("error getting `current_dir`"));
-    println!("working on {} ...", buf.to_str().unwrap());
+    let buf = args.get(1).map(PathBuf::from).unwrap_or(env::current_dir().expect("error getting `current_dir`"));
+    println!("working on {}...", buf.to_str().unwrap());
     let result = run(buf, &RealFileOperations);
     view(result);
 }

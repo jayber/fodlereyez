@@ -14,7 +14,7 @@ impl fmt::Display for Byteable {
     }
 }
 
-const SCALES: [(u64, &'static str); 3] = [(1000000000, "GB"), (1000000, "MB"), (1000, "KB")];
+const SCALES: [(u64, &str); 3] = [(1024*1024*1024, "GB"), (1024*1024, "MB"), (1024, "KB")];
 
 impl Byteable {
     fn scale(&self, index: usize) -> (f64, &str) {
@@ -40,10 +40,11 @@ mod tests {
     fn test_byteable_output() {
         assert_eq!(Byteable { val: 100 }.to_string(), "100 B");
         assert_eq!(Byteable { val: 999 }.to_string(), "999 B");
-        assert_eq!(Byteable { val: 1000 }.to_string(), "1 KB");
-        assert_eq!(Byteable { val: 999999 }.to_string(), "999.99 KB");
-        assert_eq!(Byteable { val: 1000000 }.to_string(), "1 MB");
-        assert_eq!(Byteable { val: 999999999 }.to_string(), "999.99 MB");
-        assert_eq!(Byteable { val: 1000000000 }.to_string(), "1 GB");
+        assert_eq!(Byteable { val: 1000 }.to_string(), "1000 B");
+        assert_eq!(Byteable { val: 1024 }.to_string(), "1 KB");
+        assert_eq!(Byteable { val: (1024 * 1024) - 1 }.to_string(), "1023.99 KB");
+        assert_eq!(Byteable { val: (1024 * 1024) }.to_string(), "1 MB");
+        assert_eq!(Byteable { val:  (1024 * 1024 * 1024) - 1 }.to_string(), "1023.99 MB");
+        assert_eq!(Byteable { val:  (1024 * 1024 * 1024) }.to_string(), "1 GB");
     }
 }
