@@ -1,18 +1,4 @@
 pub(crate) fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> (u8, u8, u8) {
-    fn check_bounds(hue: f64, saturation: f64, value: f64) {
-        fn panic_bad_params(name: &str, from_value: &str, to_value: &str, supplied: String) -> ! {
-            panic!("{} must be between {} and {} inclusive, was {}", name, from_value, to_value, supplied)
-        }
-
-        if hue < 0.0 || hue > 360.0 {
-            panic_bad_params("hue", "0.0", "360.0", hue.to_string())
-        } else if saturation < 0.0 || saturation > 1.0 {
-            panic_bad_params("saturation", "0.0", "1.0", saturation.to_string())
-        } else if value < 0.0 || value > 1.0 {
-            panic_bad_params("value", "0.0", "1.0", value.to_string())
-        }
-    }
-
     fn is_between(value: f64, min: f64, max: f64) -> bool {
         min <= value && value < max
     }
@@ -21,7 +7,7 @@ pub(crate) fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> (u8, u8, u8) 
 
     let c = value * saturation;
     let h = hue / 60.0;
-    let x = c as f64 * (1.0 - ((h % 2.0) - 1.0).abs());
+    let x = c * (1.0 - ((h % 2.0) - 1.0).abs());
     let m = value - c;
 
     let (r, g, b): (f64, f64, f64) = if is_between(h, 0.0, 1.0) {
@@ -38,7 +24,28 @@ pub(crate) fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> (u8, u8, u8) 
         (c, 0.0, x)
     };
 
-    (((r + m) * 255.0) as u8, ((g + m) * 255.0) as u8, ((b + m) * 255.0) as u8)
+    (
+        ((r + m) * 255.0) as u8,
+        ((g + m) * 255.0) as u8,
+        ((b + m) * 255.0) as u8,
+    )
+}
+
+fn check_bounds(hue: f64, saturation: f64, value: f64) {
+    fn panic_bad_params(name: &str, from_value: &str, to_value: &str, supplied: f64) -> ! {
+        panic!(
+            "param {} must be between {} and {} inclusive; was {}",
+            name, from_value, to_value, supplied
+        )
+    }
+
+    if hue < 0.0 || hue > 360.0 {
+        panic_bad_params("hue", "0.0", "360.0", hue)
+    } else if saturation < 0.0 || saturation > 1.0 {
+        panic_bad_params("saturation", "0.0", "1.0", saturation)
+    } else if value < 0.0 || value > 1.0 {
+        panic_bad_params("value", "0.0", "1.0", value)
+    }
 }
 
 #[cfg(test)]
@@ -46,37 +53,35 @@ mod test {
     use super::*;
 
     #[test]
-    #[should_panic(expected = "hue must be between 0.0 and 360.0 inclusive, was -0.1")]
-    fn test_hsv_bounds_fail1() {
-        hsv_to_rgb(-0.1, 0.0, 0.0);
-    }
+    #[should_panic(expected = "param hue must be between 0.0 and 360.0 inclusive; was -0.1")]
+    fn test_hsv_bounds_fail1() { hsv_to_rgb(-0.1, 0.0, 0.0); }
 
     #[test]
-    #[should_panic(expected = "hue must be between 0.0 and 360.0 inclusive, was 360.1")]
+    #[should_panic(expected = "param hue must be between 0.0 and 360.0 inclusive; was 360.1")]
     fn test_hsv_bounds_fail2() {
         hsv_to_rgb(360.1, 0.0, 0.0);
     }
 
     #[test]
-    #[should_panic(expected = "saturation must be between 0.0 and 1.0 inclusive, was -0.1")]
+    #[should_panic(expected = "param saturation must be between 0.0 and 1.0 inclusive; was -0.1")]
     fn test_hsv_bounds_fail3() {
         hsv_to_rgb(0.1, -0.1, 0.0);
     }
 
     #[test]
-    #[should_panic(expected = "saturation must be between 0.0 and 1.0 inclusive, was 1.1")]
+    #[should_panic(expected = "param saturation must be between 0.0 and 1.0 inclusive; was 1.1")]
     fn test_hsv_bounds_fail4() {
         hsv_to_rgb(0.1, 1.1, 0.0);
     }
 
     #[test]
-    #[should_panic(expected = "value must be between 0.0 and 1.0 inclusive, was -0.1")]
+    #[should_panic(expected = "param value must be between 0.0 and 1.0 inclusive; was -0.1")]
     fn test_hsv_bounds_fail5() {
         hsv_to_rgb(0.1, 0.1, -0.1);
     }
 
     #[test]
-    #[should_panic(expected = "value must be between 0.0 and 1.0 inclusive, was 1.1")]
+    #[should_panic(expected = "param value must be between 0.0 and 1.0 inclusive; was 1.1")]
     fn test_hsv_bounds_fail6() {
         hsv_to_rgb(0.1, 0.1, 1.1);
     }

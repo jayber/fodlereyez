@@ -1,20 +1,34 @@
-use std::fs;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use std::fs;
 use std::fs::{DirEntry, FileType, Metadata, ReadDir};
 use std::path::PathBuf;
 
-use folder_size::analysis::*;
+use crate::file_analysis::*;
 
 pub struct RealFileOperations;
 
 impl FileSystemProxy for RealFileOperations {
-    fn read_dir(&self, directory: &PathBuf) -> Result<Box<dyn ReadDirProxy<Item=Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>>>, Box<dyn Error>> {
-        let read_dir = fs::read_dir(directory).map_err(|e| FSProxyError { path: directory.clone(), source: e })?;
+    fn read_dir(
+        &self,
+        directory: &PathBuf,
+    ) -> Result<
+        Box<dyn ReadDirProxy<Item = Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>>>,
+        Box<dyn Error>,
+    > {
+        let read_dir = fs::read_dir(directory).map_err(|e| FSProxyError {
+            path: directory.clone(),
+            source: e,
+        })?;
         Ok(Box::new(RealReadDir::new(read_dir)))
     }
     fn metadata(&self, path: &PathBuf) -> Result<Box<dyn MetadataProxy>, Box<dyn Error>> {
-        Ok(Box::new(RealMetadataProxy { metadata: fs::metadata(path).map_err(|e| FSProxyError { path: path.clone(), source: e })? }))
+        Ok(Box::new(RealMetadataProxy {
+            metadata: fs::metadata(path).map_err(|e| FSProxyError {
+                path: path.clone(),
+                source: e,
+            })?,
+        }))
     }
 }
 
@@ -31,7 +45,12 @@ impl Debug for FSProxyError {
 
 impl FSProxyError {
     fn write_message(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "path {}, caused by {}", self.path.to_str().unwrap_or("unknown"), self.source)
+        write!(
+            f,
+            "path {}, caused by {}",
+            self.path.to_str().unwrap_or("unknown"),
+            self.source
+        )
     }
 }
 
@@ -60,7 +79,9 @@ impl RealReadDir {
 impl Iterator for RealReadDir {
     type Item = Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>;
     fn next(&mut self) -> Option<Self::Item> {
-        Some(Ok(Box::new(RealDirPathEntry { fs_dir_path: self.read_dir.next()?.unwrap() })))
+        Some(Ok(Box::new(RealDirPathEntry {
+            fs_dir_path: self.read_dir.next()?.unwrap(),
+        })))
     }
 }
 
@@ -75,7 +96,9 @@ impl DirPathEntryProxy for RealDirPathEntry {
         self.fs_dir_path.path()
     }
     fn file_type(&self) -> std::io::Result<Box<dyn FileTypeProxy>> {
-        Ok(Box::new(RealFileTypeProxy { file_type: self.fs_dir_path.file_type()? }))
+        Ok(Box::new(RealFileTypeProxy {
+            file_type: self.fs_dir_path.file_type()?,
+        }))
     }
 }
 
