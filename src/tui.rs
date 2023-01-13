@@ -4,7 +4,7 @@ use cursive::view::Resizable;
 use cursive::views::{LinearLayout, ResizedView, TextView};
 use cursive::With;
 
-use crate::color::hsv_to_rgb;
+use crate::color::*;
 use crate::file_analysis::DirectoryTree;
 
 pub(crate) fn view(result: DirectoryTree) {
@@ -49,20 +49,7 @@ fn build_views(result: DirectoryTree) -> ResizedView<LinearLayout> {
 }
 
 fn color_for_size(size: u64) -> Color {
-    let top = (1024_f64 * 1024_f64 * 1024_f64 * 10_f64) as f64;
-    let bottom = 1024_f64;
-    let range = top - bottom;
-    let size = size as f64;
-    let size_hue = size.max(bottom).min(top);
-    let hue_scale = (range - (size_hue - bottom)) / range;
-
-    let top_white = 1024_f64 * 1024_f64 * 50_f64;
-    let saturation = ((size - bottom).max(0.0) / top_white).min(1.0);
-
-    let top_black = 1024_f64 * 1024_f64 * 1024_f64 * 300_f64;
-    let value = (1.0 - ((size - top).max(0.0).min(top_black) / top_black)).max(0.6);
-
-    let (r, g, b) = hsv_to_rgb(hue_scale * 220.0, saturation, value);
+    let (r, g, b) = convert_file_size_to_color(size);
     Color::Rgb(r, g, b)
 }
 
