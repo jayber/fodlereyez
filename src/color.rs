@@ -3,25 +3,24 @@ pub(crate) fn convert_file_size_to_color(size: u64) -> (u8, u8, u8) {
     hsv_to_rgb(hue, saturation, value)
 }
 
+const BLUE_HUE: f64 = 210.0;
+
 fn size_to_hsv(size: u64) -> (f64, f64, f64) {
+    const HUE_MIN: f64 = 1024_f64 * 1024_f64;
+    const HUE_MAX: f64 = 1024_f64 * 1024_f64 * 1024_f64 * 100_f64;
+    const SATURATION_MAX: f64 = 1024_f64 * 1024_f64 * 500_f64;
+    const VALUE_MAX: f64 = 1024_f64 * 1024_f64 * 1024_f64 * 200_f64;
+    const LOWEST_VALUE: f64 = 0.55;
     let size = size as f64;
-
-    let hue_min = 1024_f64 * 1024_f64;
-    let hue_max = 1024_f64 * 1024_f64 * 1024_f64 * 100_f64;
-    let saturation_max = 1024_f64 * 1024_f64 * 500_f64;
-    let value_max = 1024_f64 * 1024_f64 * 1024_f64 * 200_f64;
-
-    let lowest_value = 0.55;
-
     (
-        calc_hue(size, hue_min, hue_max, BLUE_HUE),
-        calc_saturation(size, saturation_max),
-        calc_value(size, hue_max, value_max, lowest_value)
+        calc_hue(size, HUE_MIN, HUE_MAX, BLUE_HUE),
+        calc_saturation(size, SATURATION_MAX),
+        calc_value(size, HUE_MAX, VALUE_MAX, LOWEST_VALUE)
     )
 }
 
-fn calc_value(size: f64, hue_max: f64, value_max: f64, lowest_value: f64) -> f64 {
-    (1.0 - ((size - hue_max).max(0.0).min(value_max) / value_max)).max(lowest_value)
+fn calc_value(size: f64, value_min: f64, value_max: f64, lowest_value: f64) -> f64 {
+    (1.0 - ((size - value_min).max(0.0).min(value_max) / value_max)).max(lowest_value)
 }
 
 fn calc_saturation(size: f64, saturation_max: f64) -> f64 {
@@ -31,9 +30,7 @@ fn calc_saturation(size: f64, saturation_max: f64) -> f64 {
     ((sat * 100_f64).round() / 100_f64).min(1.0).max(0.0)
 }
 
-const BLUE_HUE: f64 = 210.0;
-
-fn calc_hue(size: f64, hue_min: f64, hue_max: f64, hue_start: f64) -> f64 {
+fn calc_hue(size: f64, hue_min: f64, hue_max: f64, base_hue: f64) -> f64 {
     const FACTOR: f64 = 1_000_f64;
     let hue_scale = if size <= hue_min { 1.0 } else if size >= hue_max { 0.0 } else {
         let range = (hue_max - hue_min).abs();
@@ -41,7 +38,7 @@ fn calc_hue(size: f64, hue_min: f64, hue_max: f64, hue_start: f64) -> f64 {
         let mid = (size_in_range / range) * FACTOR;
         (1.0 - (mid.log10() / FACTOR.log10())).max(0.0).min(1.0)
     };
-    (hue_scale * hue_start * 100_f64).round() / 100_f64
+    (hue_scale * base_hue * 100_f64).round() / 100_f64
 }
 
 fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> (u8, u8, u8) {
@@ -258,6 +255,14 @@ mod test {
             assert_eq!(calc_saturation(500_000_000_000.0, 1_000_000_000_000.0), 0.9, "halfway saturation");
             assert_eq!(calc_saturation(250_000_000_000.0, 1_000_000_000_000.0), 0.8, "quarter saturation");
             assert_eq!(calc_saturation(750_000_000_000.0, 1_000_000_000_000.0), 0.96, "three-quarter saturation");
+        }
+
+
+        #[test]
+        fn test_calc_value() {
+            assert_eq!(calc_value(1.0, 0.0, 1.0, 0.0), 0.0, "max size is min value");
+            assert_eq!(calc_value(0.0, 0.0, 1.0, 0.0), 1.0, "min size is max value");
+            assert_eq!(calc_value(0.5, 0.0, 1.0, 0.0), 0.5, "halfway is halfway value");
         }
     }
 }
