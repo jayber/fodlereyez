@@ -1,8 +1,21 @@
 use std::fmt;
+use std::path::PathBuf;
+
+pub struct DirectoryTree {
+    pub name: PathBuf,
+    pub children: Vec<DirectoryTree>,
+    pub len: Byteable,
+    pub files: Vec<FileInfo>
+}
+
+pub struct FileInfo {
+    pub name: String,
+    pub len: Byteable
+}
 
 #[derive(Debug)]
 pub struct Byteable {
-    pub val: u64,
+    pub val: u64
 }
 
 impl fmt::Display for Byteable {
@@ -18,7 +31,7 @@ const SCALES: [(u64, &str); 4] = [
     (1024 * 1024 * 1024 * 1024, "TB"),
     (1024 * 1024 * 1024, "GB"),
     (1024 * 1024, "MB"),
-    (1024, "KB"),
+    (1024, "KB")
 ];
 
 impl Byteable {
@@ -47,27 +60,9 @@ mod tests {
         assert_eq!(Byteable { val: 999 }.to_string(), "999 B");
         assert_eq!(Byteable { val: 1000 }.to_string(), "1000 B");
         assert_eq!(Byteable { val: 1024 }.to_string(), "1 KB");
-        assert_eq!(
-            Byteable {
-                val: (1024 * 1024) - 1
-            }
-            .to_string(),
-            "1023.99 KB"
-        );
+        assert_eq!(Byteable { val: (1024 * 1024) - 1 }.to_string(), "1023.99 KB");
         assert_eq!(Byteable { val: (1024 * 1024) }.to_string(), "1 MB");
-        assert_eq!(
-            Byteable {
-                val: (1024 * 1024 * 1024) - 1
-            }
-            .to_string(),
-            "1023.99 MB"
-        );
-        assert_eq!(
-            Byteable {
-                val: (1024 * 1024 * 1024)
-            }
-            .to_string(),
-            "1 GB"
-        );
+        assert_eq!(Byteable { val: (1024 * 1024 * 1024) - 1 }.to_string(), "1023.99 MB");
+        assert_eq!(Byteable { val: (1024 * 1024 * 1024) }.to_string(), "1 GB");
     }
 }
