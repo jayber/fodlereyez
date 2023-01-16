@@ -5,7 +5,7 @@ use cursive::views::{LinearLayout, ResizedView, TextView};
 use cursive::With;
 
 use crate::color::*;
-use crate::file_analysis::DirectoryTree;
+use crate::file_analysis::file_objects::DirectoryTree;
 
 pub(crate) fn view(result: DirectoryTree) {
     let mut siv = cursive::default();
@@ -15,16 +15,16 @@ pub(crate) fn view(result: DirectoryTree) {
 }
 
 fn build_views(result: DirectoryTree) -> ResizedView<LinearLayout> {
-    let mut rows = LinearLayout::horizontal();
-    let top_layout = LinearLayout::vertical().child(TextView::new(format!(
+    let mut columns = LinearLayout::horizontal();
+    let root_layout = LinearLayout::vertical().child(TextView::new(format!(
         "{}, size: {}",
         result.name.to_str().unwrap(),
         result.len
     )));
 
-    let padding = LinearLayout::vertical().fixed_width(2);
+    let col_padding = LinearLayout::vertical().fixed_width(2);
     let mut col1 = LinearLayout::vertical();
-    let padding2 = LinearLayout::vertical().fixed_width(1);
+    let col_padding2 = LinearLayout::vertical().fixed_width(1);
     let mut col2 = LinearLayout::vertical();
     for child in result.children {
         let mut name = TextView::new(
@@ -44,8 +44,8 @@ fn build_views(result: DirectoryTree) -> ResizedView<LinearLayout> {
         col1 = col1.child(name);
         col2 = col2.child(size);
     }
-    rows = rows.child(padding).child(col1).child(padding2).child(col2);
-    top_layout.child(rows).full_screen()
+    columns = columns.child(col_padding).child(col1).child(col_padding2).child(col2);
+    root_layout.child(columns).full_screen()
 }
 
 fn color_for_size(size: u64) -> Color {

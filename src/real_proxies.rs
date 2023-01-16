@@ -4,7 +4,7 @@ use std::fs;
 use std::fs::{DirEntry, FileType, Metadata, ReadDir};
 use std::path::PathBuf;
 
-use crate::file_analysis::*;
+use crate::file_analysis::proxies::{DirPathEntryProxy, FileSystemProxy, FileTypeProxy, MetadataProxy, ReadDirProxy};
 
 pub struct RealFileOperations;
 

@@ -1,4 +1,17 @@
 use std::fmt;
+use std::path::PathBuf;
+
+pub struct DirectoryTree {
+    pub name: PathBuf,
+    pub children: Vec<DirectoryTree>,
+    pub len: Byteable,
+    pub files: Vec<FileInfo>,
+}
+
+pub struct FileInfo {
+    pub name: String,
+    pub len: Byteable,
+}
 
 #[derive(Debug)]
 pub struct Byteable {
@@ -47,27 +60,9 @@ mod tests {
         assert_eq!(Byteable { val: 999 }.to_string(), "999 B");
         assert_eq!(Byteable { val: 1000 }.to_string(), "1000 B");
         assert_eq!(Byteable { val: 1024 }.to_string(), "1 KB");
-        assert_eq!(
-            Byteable {
-                val: (1024 * 1024) - 1
-            }
-            .to_string(),
-            "1023.99 KB"
-        );
+        assert_eq!(Byteable { val: (1024 * 1024) - 1}.to_string(),"1023.99 KB");
         assert_eq!(Byteable { val: (1024 * 1024) }.to_string(), "1 MB");
-        assert_eq!(
-            Byteable {
-                val: (1024 * 1024 * 1024) - 1
-            }
-            .to_string(),
-            "1023.99 MB"
-        );
-        assert_eq!(
-            Byteable {
-                val: (1024 * 1024 * 1024)
-            }
-            .to_string(),
-            "1 GB"
-        );
+        assert_eq!(Byteable { val: (1024 * 1024 * 1024) - 1 }.to_string(), "1023.99 MB");
+        assert_eq!(Byteable { val: (1024 * 1024 * 1024) }.to_string(), "1 GB");
     }
 }

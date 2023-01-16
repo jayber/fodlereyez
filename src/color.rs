@@ -12,6 +12,7 @@ fn size_to_hsv(size: u64) -> (f64, f64, f64) {
     const VALUE_MAX: f64 = 1024_f64 * 1024_f64 * 1024_f64 * 200_f64;
     const LOWEST_VALUE: f64 = 0.55;
     let size = size as f64;
+    
     (
         calc_hue(size, HUE_MIN, HUE_MAX, BLUE_HUE),
         calc_saturation(size, SATURATION_MAX),
