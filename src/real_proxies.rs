@@ -4,32 +4,25 @@ use std::fs;
 use std::fs::{DirEntry, FileType, Metadata, ReadDir};
 use std::path::PathBuf;
 
-use crate::file_analysis::proxies::{
-    DirPathEntryProxy, FileSystemProxy, FileTypeProxy, MetadataProxy, ReadDirProxy
-};
+use crate::file_analysis::proxies::{DirPathEntryProxy, FileSystemProxy, FileTypeProxy, MetadataProxy, ReadDirProxy};
 
-pub struct RealFileOperations;
+pub(crate) struct RealFileOperations;
 
 impl FileSystemProxy for RealFileOperations {
     fn read_dir(
         &self, directory: &PathBuf
-    ) -> Result<
-        Box<dyn ReadDirProxy<Item = Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>>>,
-        Box<dyn Error>
-    > {
-        let read_dir = fs::read_dir(directory)
-            .map_err(|e| FSProxyError { path: directory.clone(), source: e })?;
+    ) -> Result<Box<dyn ReadDirProxy<Item = Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>>>, Box<dyn Error>> {
+        let read_dir = fs::read_dir(directory).map_err(|e| FSProxyError { path: directory.clone(), source: e })?;
         Ok(Box::new(RealReadDir::new(read_dir)))
     }
     fn metadata(&self, path: &PathBuf) -> Result<Box<dyn MetadataProxy>, Box<dyn Error>> {
         Ok(Box::new(RealMetadataProxy {
-            metadata: fs::metadata(path)
-                .map_err(|e| FSProxyError { path: path.clone(), source: e })?
+            metadata: fs::metadata(path).map_err(|e| FSProxyError { path: path.clone(), source: e })?
         }))
     }
 }
 
-pub struct FSProxyError {
+pub(crate) struct FSProxyError {
     path: PathBuf,
     source: std::io::Error
 }
@@ -52,7 +45,7 @@ impl Error for FSProxyError {
     fn source(&self) -> Option<&(dyn Error + 'static)> { Some(&self.source) }
 }
 
-pub struct RealReadDir {
+pub(crate) struct RealReadDir {
     read_dir: ReadDir
 }
 

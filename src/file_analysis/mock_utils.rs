@@ -1,11 +1,12 @@
-use mockall::{mock, Sequence};
 use std::error::Error;
 use std::path::PathBuf;
+
+use mockall::{mock, Sequence};
 
 use super::proxies::*;
 
 mock! {
-    pub MyReadDirProxy {}
+    pub(crate) MyReadDirProxy {}
     impl ReadDirProxy for MyReadDirProxy {}
     impl Iterator for MyReadDirProxy {
         type Item = Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>;
@@ -13,15 +14,17 @@ mock! {
     }
 }
 
-pub fn set_expect(num_directories: usize, num_files: usize) -> Result<(PathBuf, MockFileSystemProxy), Box<dyn Error>> {
+pub(crate) fn set_expect(
+    num_directories: usize, num_files: usize
+) -> Result<(PathBuf, MockFileSystemProxy), Box<dyn Error>> {
     let mut mock_file_operations = MockFileSystemProxy::new();
-    let dir = PathBuf::new();
+    let dir = PathBuf::from("current");
     let mut seq_read_dir = Sequence::new();
     expect_read_dir(num_directories, num_files, &mut mock_file_operations, dir.clone(), &mut seq_read_dir);
     if num_files > 0 {
         mock_file_operations.expect_metadata().times(num_files).returning(|_| {
             let mut metadata = MockMetadataProxy::new();
-            metadata.expect_len().return_const(10_u64);
+            metadata.expect_len().return_const(1024 * 1024_u64);
             Ok(Box::new(metadata))
         });
     }
