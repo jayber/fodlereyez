@@ -1,31 +1,24 @@
 use std::error::Error;
 use std::path::PathBuf;
 
-use file_objects::{Byteable, DirectoryTree, FileInfo};
+use file_objects::{Byteable, DirectoryTree};
 use proxies::{DirPathEntryProxy, FileSystemProxy, ReadDirProxy};
 
 pub(crate) mod file_objects;
 pub(crate) mod proxies;
 
-pub fn run(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryTree {
-    let mut root = calc_directory_tree(current_dir, file_operations);
-    root.children.sort_by(|a, b| b.len.val.partial_cmp(&a.len.val).unwrap());
-    root
+pub(crate) fn run(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryTree {
+    calc_directory_tree(String::from(current_dir.to_str().unwrap()), current_dir, file_operations)
 }
 
-fn calc_directory_tree(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryTree {
-    file_operations.read_dir(&current_dir).map_or_else(
+fn calc_directory_tree(current_dir: String, path: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryTree {
+    file_operations.read_dir(&path).map_or_else(
         |e| {
             eprintln!("error in read_dir: {}", e);
-            DirectoryTree { name: current_dir.clone(), children: vec![], len: Byteable { val: 0_u64 }, files: vec![] }
+            DirectoryTree::new(current_dir.clone())
         },
         |read_dir| {
-            let tree = DirectoryTree {
-                name: current_dir.clone(),
-                children: vec![],
-                len: Byteable { val: 0_u64 },
-                files: vec![]
-            };
+            let tree = DirectoryTree::new(current_dir.clone());
             populate_tree(file_operations, read_dir, tree)
         }
     )
@@ -40,14 +33,15 @@ fn populate_tree<'a>(
         let entry = entry.expect("error in getting entry");
         match entry.file_type().expect("error getting file type").is_dir() {
             true => {
-                let child = calc_directory_tree(entry.path(), file_operations);
+                let dir = entry.path();
+                let child = calc_directory_tree(get_file_name(&dir), dir, file_operations);
                 tree.len.val += child.len.val;
-                tree.children.push(child);
+                tree.add_directory(child);
             }
             false => match file_operations.metadata(&entry.path()) {
                 Ok(metadata) => {
                     tree.len.val += metadata.len();
-                    tree.files.push(FileInfo { name: get_file_name(entry), len: Byteable { val: metadata.len() } })
+                    tree.add_file(get_file_name(&entry.path()), Byteable { val: metadata.len() })
                 }
                 Err(e) => {
                     eprintln!("error in metadata: {}", e);
@@ -55,11 +49,13 @@ fn populate_tree<'a>(
             }
         }
     }
+    tree.rollup();
     tree
 }
 
-fn get_file_name<'a>(entry: Box<dyn DirPathEntryProxy>) -> String {
-    entry.path().components().last().unwrap().as_os_str().to_str().unwrap().to_string()
+fn get_file_name(buf: &PathBuf) -> String {
+    let component = buf.file_name().unwrap();
+    String::from(component.to_str().unwrap())
 }
 
 #[cfg(test)]
@@ -75,9 +71,15 @@ mod tests {
     fn test_run_with_1_file() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(0, 1)?;
         let tree = run(dir, &mock_file_operations);
-        assert_eq!(tree.children.len(), 0);
-        assert_eq!(tree.files.len(), 1);
-        assert_eq!(tree.len.val, 10_u64);
+        assert_eq!(tree.name, "current");
+        assert_eq!(tree.len.val, 1024 * 1024_u64);
+        let mut iter = tree.entries.into_iter();
+        let file = iter.next();
+        assert_eq!(file.is_some(), true);
+        let file = file.unwrap();
+        assert_eq!(file.is_dir(), false);
+        assert_eq!(file.len().val, 1024 * 1024_u64);
+        assert_eq!(iter.next().is_none(), true);
         Ok(())
     }
 
@@ -85,9 +87,16 @@ mod tests {
     fn test_run_with_1_directory() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(1, 0)?;
         let tree = run(dir, &mock_file_operations);
-        assert_eq!(tree.children.len(), 1);
-        assert_eq!(tree.files.len(), 0);
+        assert_eq!(tree.name, "current");
         assert_eq!(tree.len.val, 0_u64);
+        let mut iter = tree.entries.into_iter();
+        let child = iter.next();
+        assert_eq!(child.is_some(), true);
+        let child = child.unwrap();
+        assert_eq!(child.is_dir(), true);
+        assert_eq!(child.name(), "test\\");
+        assert_eq!(child.len().val, 0_u64);
+        assert_eq!(iter.next().is_none(), true);
         Ok(())
     }
 
@@ -95,9 +104,21 @@ mod tests {
     fn test_run_with_2_directory() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(2, 0)?;
         let tree = run(dir, &mock_file_operations);
-        assert_eq!(tree.children.len(), 2);
-        assert_eq!(tree.files.len(), 0);
         assert_eq!(tree.len.val, 0_u64);
+        let mut iter = tree.entries.into_iter();
+        let child = iter.next();
+        assert_eq!(child.is_some(), true);
+        let entry = child.unwrap();
+        assert_eq!(entry.name(), "test\\");
+        assert_eq!(entry.is_dir(), true);
+
+        let child = iter.next();
+        assert_eq!(child.is_some(), true);
+        let entry1 = child.unwrap();
+        assert_eq!(entry1.name(), "test\\");
+        assert_eq!(entry1.is_dir(), true);
+
+        assert_eq!(iter.next().is_some(), false);
         Ok(())
     }
 
@@ -105,9 +126,22 @@ mod tests {
     fn test_run_with_1_directory_and_1_file() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(1, 1)?;
         let tree = run(dir, &mock_file_operations);
-        assert_eq!(tree.children.len(), 1);
-        assert_eq!(tree.files.len(), 1);
-        assert_eq!(tree.len.val, 10_u64);
+        assert_eq!(tree.name, "current");
+        assert_eq!(tree.len.val, 1024 * 1024_u64);
+        let mut iter = tree.entries.into_iter();
+
+        let file = iter.next();
+        assert_eq!(file.is_some(), true);
+        let entry = file.unwrap();
+        assert_eq!(entry.is_dir(), false);
+        assert_eq!(entry.len().val, 1024 * 1024_u64);
+
+        let rollup = iter.next();
+        assert_eq!(rollup.is_some(), true);
+        let child = rollup.unwrap();
+        assert_eq!(child.name(), "test\\");
+        assert_eq!(child.is_dir(), true);
+        assert_eq!(child.len().val, 0_u64);
         Ok(())
     }
 
@@ -115,9 +149,38 @@ mod tests {
     fn test_run_with_2_directory_and_2_file() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(2, 2)?;
         let tree = run(dir, &mock_file_operations);
-        assert_eq!(tree.children.len(), 2);
-        assert_eq!(tree.files.len(), 2);
-        assert_eq!(tree.len.val, 20_u64);
+        assert_eq!(tree.len.val, 1024 * 1024_u64 * 2_u64);
+        assert_eq!(tree.name, "current");
+        let mut iter = tree.entries.into_iter();
+
+        let file = iter.next();
+        assert_eq!(file.is_some(), true);
+        let entry = file.unwrap();
+        assert_eq!(entry.is_dir(), false);
+        assert_eq!(entry.len().val, 1024 * 1024_u64);
+        let file = iter.next();
+        assert_eq!(file.is_some(), true);
+        let entry = file.unwrap();
+        assert_eq!(entry.is_dir(), false);
+        assert_eq!(entry.len().val, 1024 * 1024_u64);
+
+        let child = iter.next();
+        assert_eq!(child.is_some(), true);
+        let child = child.unwrap();
+        assert_eq!(child.is_dir(), true);
+        assert_eq!(child.len().val, 0_u64);
+        assert_eq!(child.name(), "test\\");
+
+        let child = iter.next();
+        assert_eq!(child.is_some(), true);
+        let child = child.unwrap();
+        assert_eq!(child.is_dir(), true);
+        assert_eq!(child.len().val, 0_u64);
+        assert_eq!(child.name(), "test\\");
+
+        let child = iter.next();
+        assert_eq!(child.is_some(), false);
+
         Ok(())
     }
 }

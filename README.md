@@ -23,10 +23,6 @@ less verbose. It took ***way*** longer to set up the mocks and write the tests t
 up way more lines. This doesn't mean they are bad, but it reinforces the idea that unit testing can be an expensive
 hassle.
 
-Also, the current version is only tested by virtue of the mocks receiving their expectations, rather than actual
-functionality.
-This is a fault. To be meaningful they should verify return values.
-
 BTW *Integration* tests for this particular problem would have made more sense, but don't affect the value of the
 exercise
 as it is. But remember:

@@ -15,6 +15,11 @@ fn main() {
     let root_directory = args
         .get(1)
         .map(PathBuf::from)
+        .filter(|path| path.is_dir())
+        .or_else(|| {
+            eprintln!("supplied argument is not a directory, or no argument supplied. reverting to current directory");
+            None
+        })
         .unwrap_or(env::current_dir().expect("error getting `current_dir`"));
     println!("working on {}...", root_directory.to_str().unwrap());
     let result = run(root_directory, &RealFileOperations);
