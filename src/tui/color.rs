@@ -75,10 +75,7 @@ fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> (u8, u8, u8) {
 
 fn check_bounds(hue: f64, saturation: f64, value: f64) {
     fn panic_bad_params(name: &str, from_value: &str, to_value: &str, supplied: f64) -> ! {
-        panic!(
-            "param {} must be between {} and {} inclusive; was: {}",
-            name, from_value, to_value, supplied
-        )
+        panic!("param {} must be between {} and {} inclusive; was: {}", name, from_value, to_value, supplied)
     }
 
     if hue < 0.0 || hue > 360.0 {
@@ -95,110 +92,108 @@ mod test {
     use super::*;
 
     mod check_bounds {
-        use super::check_bounds;
+        use crate::tui::color;
 
         #[test]
         #[should_panic(expected = "param hue must be between 0.0 and 360.0 inclusive; was: -0.1")]
-        fn test_check_bounds_fail1() { check_bounds(-0.1, 0.0, 0.0); }
+        fn test_check_bounds_fail1() { color::check_bounds(-0.1, 0.0, 0.0); }
 
         #[test]
         #[should_panic(expected = "param hue must be between 0.0 and 360.0 inclusive; was: 360.1")]
-        fn test_check_bounds_fail2() { check_bounds(360.1, 0.0, 0.0); }
+        fn test_check_bounds_fail2() { color::check_bounds(360.1, 0.0, 0.0); }
 
         #[test]
-        #[should_panic(
-            expected = "param saturation must be between 0.0 and 1.0 inclusive; was: -0.1"
-        )]
-        fn test_check_bounds_fail3() { check_bounds(0.1, -0.1, 0.0); }
+        #[should_panic(expected = "param saturation must be between 0.0 and 1.0 inclusive; was: -0.1")]
+        fn test_check_bounds_fail3() { color::check_bounds(0.1, -0.1, 0.0); }
 
         #[test]
-        #[should_panic(
-            expected = "param saturation must be between 0.0 and 1.0 inclusive; was: 1.1"
-        )]
-        fn test_check_bounds_fail4() { check_bounds(0.1, 1.1, 0.0); }
+        #[should_panic(expected = "param saturation must be between 0.0 and 1.0 inclusive; was: 1.1")]
+        fn test_check_bounds_fail4() { color::check_bounds(0.1, 1.1, 0.0); }
 
         #[test]
         #[should_panic(expected = "param value must be between 0.0 and 1.0 inclusive; was: -0.1")]
-        fn test_check_bounds_fail5() { check_bounds(0.1, 0.1, -0.1); }
+        fn test_check_bounds_fail5() { color::check_bounds(0.1, 0.1, -0.1); }
 
         #[test]
         #[should_panic(expected = "param value must be between 0.0 and 1.0 inclusive; was: 1.1")]
-        fn test_check_bounds_fail6() { check_bounds(0.1, 0.1, 1.1); }
+        fn test_check_bounds_fail6() { color::check_bounds(0.1, 0.1, 1.1); }
 
         #[test]
-        fn test_check_bounds_red() { check_bounds(0.0, 1.0, 1.0); }
+        fn test_check_bounds_red() { color::check_bounds(0.0, 1.0, 1.0); }
 
         #[test]
-        fn test_check_bounds_green() { check_bounds(120.0, 1.0, 1.0); }
+        fn test_check_bounds_green() { color::check_bounds(120.0, 1.0, 1.0); }
 
         #[test]
-        fn test_check_bounds_blue() { check_bounds(240.0, 1.0, 1.0); }
+        fn test_check_bounds_blue() { color::check_bounds(240.0, 1.0, 1.0); }
 
         #[test]
-        fn test_check_bounds_yellow() { check_bounds(60.0, 1.0, 1.0); }
+        fn test_check_bounds_yellow() { color::check_bounds(60.0, 1.0, 1.0); }
 
         #[test]
-        fn test_check_bounds_rust() { check_bounds(28.0, 0.92, 0.71); }
+        fn test_check_bounds_rust() { color::check_bounds(28.0, 0.92, 0.71); }
 
         #[test]
-        fn test_check_bounds_purple() { check_bounds(277.0, 0.87, 0.94); }
+        fn test_check_bounds_purple() { color::check_bounds(277.0, 0.87, 0.94); }
     }
 
     mod hsv_to_rgb {
-        use super::hsv_to_rgb;
+        use crate::tui::color;
 
         #[test]
         fn test_hsv_black() {
-            assert_eq!(hsv_to_rgb(0.0, 0.0, 0.0), (0, 0, 0));
+            assert_eq!(color::hsv_to_rgb(0.0, 0.0, 0.0), (0, 0, 0));
         }
 
         #[test]
         fn test_hsv_white() {
-            assert_eq!(hsv_to_rgb(0.0, 0.0, 1.0), (255, 255, 255));
+            assert_eq!(color::hsv_to_rgb(0.0, 0.0, 1.0), (255, 255, 255));
         }
 
         #[test]
         fn test_hsv_red() {
-            assert_eq!(hsv_to_rgb(0.0, 1.0, 1.0), (255, 0, 0));
+            assert_eq!(color::hsv_to_rgb(0.0, 1.0, 1.0), (255, 0, 0));
         }
 
         #[test]
         fn test_hsv_green() {
-            assert_eq!(hsv_to_rgb(120.0, 1.0, 1.0), (0, 255, 0));
+            assert_eq!(color::hsv_to_rgb(120.0, 1.0, 1.0), (0, 255, 0));
         }
 
         #[test]
         fn test_hsv_blue() {
-            assert_eq!(hsv_to_rgb(240.0, 1.0, 1.0), (0, 0, 255));
+            assert_eq!(color::hsv_to_rgb(240.0, 1.0, 1.0), (0, 0, 255));
         }
 
         #[test]
         fn test_hsv_yellow() {
-            assert_eq!(hsv_to_rgb(60.0, 1.0, 1.0), (255, 255, 0));
+            assert_eq!(color::hsv_to_rgb(60.0, 1.0, 1.0), (255, 255, 0));
         }
 
         #[test]
         fn test_hsv_cyan() {
-            assert_eq!(hsv_to_rgb(180.0, 1.0, 1.0), (0, 255, 255));
+            assert_eq!(color::hsv_to_rgb(180.0, 1.0, 1.0), (0, 255, 255));
         }
 
         #[test]
         fn test_hsv_magenta() {
-            assert_eq!(hsv_to_rgb(300.0, 1.0, 1.0), (255, 0, 255));
+            assert_eq!(color::hsv_to_rgb(300.0, 1.0, 1.0), (255, 0, 255));
         }
 
         #[test]
         fn test_hsv_rust() {
-            assert_eq!(hsv_to_rgb(28.0, 0.92, 0.71), (181, 92, 14));
+            assert_eq!(color::hsv_to_rgb(28.0, 0.92, 0.71), (181, 92, 14));
         }
 
         #[test]
         fn test_hsv_purple() {
-            assert_eq!(hsv_to_rgb(277.0, 0.87, 0.94), (159, 31, 239));
+            assert_eq!(color::hsv_to_rgb(277.0, 0.87, 0.94), (159, 31, 239));
         }
     }
 
     mod size_to_hsv {
+        use crate::tui::color::{calc_hue, calc_saturation, calc_value};
+
         use super::*;
 
         const RED_HUE: f64 = 0.0;
@@ -207,17 +202,9 @@ mod test {
         fn test_calc_hue() {
             let hue_start = 240.0;
             assert_eq!(calc_hue(1.0, 0.0, 1.0, hue_start), RED_HUE, "max size is {RED_HUE}");
-            assert_eq!(
-                calc_hue(2.0, 0.0, 1.0, hue_start),
-                RED_HUE,
-                "more than max size is {RED_HUE}"
-            );
+            assert_eq!(calc_hue(2.0, 0.0, 1.0, hue_start), RED_HUE, "more than max size is {RED_HUE}");
             assert_eq!(calc_hue(0.0, 0.0, 1.0, hue_start), hue_start, "min size is {BLUE_HUE}");
-            assert_eq!(
-                calc_hue(0.0, 1.0, 2.0, hue_start),
-                hue_start,
-                "less than min size is {BLUE_HUE}"
-            );
+            assert_eq!(calc_hue(0.0, 1.0, 2.0, hue_start), hue_start, "less than min size is {BLUE_HUE}");
             assert_eq!(calc_hue(0.5, 0.0, 1.0, hue_start), 24.08, "halfway");
             assert_eq!(calc_hue(0.75, 0.0, 1.0, hue_start), 10.0, "nearly {RED_HUE}");
             assert_eq!(calc_hue(0.25, 0.0, 1.0, hue_start), 48.16, "nearly {BLUE_HUE}");
@@ -242,11 +229,7 @@ mod test {
                 hue_start,
                 "less than min size is {BLUE_HUE}"
             );
-            assert_eq!(
-                calc_hue(1_500_000_000.0, 1_000_000_000.0, 2_000_000_000.0, hue_start),
-                24.08,
-                "halfway"
-            );
+            assert_eq!(calc_hue(1_500_000_000.0, 1_000_000_000.0, 2_000_000_000.0, hue_start), 24.08, "halfway");
             assert_eq!(
                 calc_hue(1_750_000_000.0, 1_000_000_000.0, 2_000_000_000.0, hue_start),
                 10.0,
@@ -267,26 +250,10 @@ mod test {
             assert_eq!(calc_saturation(0.25, 1.0), 0.8, "quarter saturation");
             assert_eq!(calc_saturation(0.75, 1.0), 0.96, "three-quarter saturation");
 
-            assert_eq!(
-                calc_saturation(10_000_000_000_000.0, 1_000_000_000_000.0),
-                1.0,
-                "max size is max saturation"
-            );
-            assert_eq!(
-                calc_saturation(500_000_000_000.0, 1_000_000_000_000.0),
-                0.9,
-                "halfway saturation"
-            );
-            assert_eq!(
-                calc_saturation(250_000_000_000.0, 1_000_000_000_000.0),
-                0.8,
-                "quarter saturation"
-            );
-            assert_eq!(
-                calc_saturation(750_000_000_000.0, 1_000_000_000_000.0),
-                0.96,
-                "three-quarter saturation"
-            );
+            assert_eq!(calc_saturation(10_000_000_000_000.0, 1_000_000_000_000.0), 1.0, "max size is max saturation");
+            assert_eq!(calc_saturation(500_000_000_000.0, 1_000_000_000_000.0), 0.9, "halfway saturation");
+            assert_eq!(calc_saturation(250_000_000_000.0, 1_000_000_000_000.0), 0.8, "quarter saturation");
+            assert_eq!(calc_saturation(750_000_000_000.0, 1_000_000_000_000.0), 0.96, "three-quarter saturation");
         }
 
         #[test]

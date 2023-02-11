@@ -7,7 +7,9 @@ use super::proxies::*;
 
 mock! {
     pub(crate) MyReadDirProxy {}
-    impl ReadDirProxy for MyReadDirProxy {}
+    impl ReadDirProxy for MyReadDirProxy {
+        fn path(&mut self) -> PathBuf;
+    }
     impl Iterator for MyReadDirProxy {
         type Item = Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>;
         fn next(&mut self) -> Option<Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>>;
@@ -38,6 +40,7 @@ fn expect_read_dir(
 ) {
     mock_file_operations.expect_read_dir().times(1).in_sequence(seq_read_dir).returning(move |_dir| {
         let mut mock_read_dir = MockMyReadDirProxy::new();
+        mock_read_dir.expect_path().times(1).returning(|| PathBuf::from("test"));
         let mut seq = Sequence::new();
         for _i in 0..num_directories {
             expect_read_dir_next(true, &mut mock_read_dir, &mut seq);

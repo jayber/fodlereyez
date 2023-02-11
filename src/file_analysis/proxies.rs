@@ -12,7 +12,9 @@ pub(crate) trait FileSystemProxy {
     fn metadata(&self, path: &PathBuf) -> Result<Box<dyn MetadataProxy>, Box<dyn Error>>;
 }
 
-pub(crate) trait ReadDirProxy: Iterator {}
+pub(crate) trait ReadDirProxy: Iterator {
+    fn path(&mut self) -> PathBuf;
+}
 
 #[cfg_attr(test, automock)]
 pub(crate) trait DirPathEntryProxy {

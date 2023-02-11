@@ -7,12 +7,12 @@ use proxies::{DirPathEntryProxy, FileSystemProxy, ReadDirProxy};
 pub(crate) mod file_objects;
 pub(crate) mod proxies;
 
-pub(crate) fn run(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryTree {
-    calc_directory_tree(String::from(current_dir.to_str().unwrap()), current_dir, file_operations)
+pub(crate) fn read_fs(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryTree {
+    calc_directory_tree(String::from(current_dir.to_str().unwrap()), &current_dir, file_operations)
 }
 
-fn calc_directory_tree(current_dir: String, path: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryTree {
-    file_operations.read_dir(&path).map_or_else(
+fn calc_directory_tree(current_dir: String, path: &PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryTree {
+    file_operations.read_dir(path).map_or_else(
         |e| {
             eprintln!("error in read_dir: {}", e);
             DirectoryTree::new(current_dir.clone())
@@ -24,24 +24,25 @@ fn calc_directory_tree(current_dir: String, path: PathBuf, file_operations: &imp
     )
 }
 
-fn populate_tree<'a>(
+fn populate_tree(
     file_operations: &impl FileSystemProxy,
-    read_dir: Box<dyn ReadDirProxy<Item = Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>>>,
+    mut read_dir: Box<dyn ReadDirProxy<Item = Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>>>,
     mut tree: DirectoryTree
 ) -> DirectoryTree {
+    let path_buf = read_dir.path();
     for entry in read_dir {
         let entry = entry.expect("error in getting entry");
         match entry.file_type().expect("error getting file type").is_dir() {
             true => {
                 let dir = entry.path();
-                let child = calc_directory_tree(get_file_name(&dir), dir, file_operations);
+                let child = calc_directory_tree(get_file_name(&dir), &dir, file_operations);
                 tree.len.val += child.len.val;
-                tree.add_directory(child);
+                tree.add_directory(child, dir.clone());
             }
             false => match file_operations.metadata(&entry.path()) {
                 Ok(metadata) => {
                     tree.len.val += metadata.len();
-                    tree.add_file(get_file_name(&entry.path()), Byteable { val: metadata.len() })
+                    tree.add_file(get_file_name(&entry.path()), Byteable { val: metadata.len() }, PathBuf::new())
                 }
                 Err(e) => {
                     eprintln!("error in metadata: {}", e);
@@ -49,7 +50,7 @@ fn populate_tree<'a>(
             }
         }
     }
-    tree.rollup();
+    tree.rollup(path_buf);
     tree
 }
 
@@ -65,12 +66,12 @@ mod mock_utils;
 mod tests {
     use std::error::Error;
 
-    use crate::file_analysis::{mock_utils, run};
+    use crate::file_analysis::{mock_utils, read_fs};
 
     #[test]
     fn test_run_with_1_file() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(0, 1)?;
-        let tree = run(dir, &mock_file_operations);
+        let tree = read_fs(dir, &mock_file_operations);
         assert_eq!(tree.name, "current");
         assert_eq!(tree.len.val, 1024 * 1024_u64);
         let mut iter = tree.entries.into_iter();
@@ -86,7 +87,7 @@ mod tests {
     #[test]
     fn test_run_with_1_directory() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(1, 0)?;
-        let tree = run(dir, &mock_file_operations);
+        let tree = read_fs(dir, &mock_file_operations);
         assert_eq!(tree.name, "current");
         assert_eq!(tree.len.val, 0_u64);
         let mut iter = tree.entries.into_iter();
@@ -103,7 +104,7 @@ mod tests {
     #[test]
     fn test_run_with_2_directory() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(2, 0)?;
-        let tree = run(dir, &mock_file_operations);
+        let tree = read_fs(dir, &mock_file_operations);
         assert_eq!(tree.len.val, 0_u64);
         let mut iter = tree.entries.into_iter();
         let child = iter.next();
@@ -125,7 +126,7 @@ mod tests {
     #[test]
     fn test_run_with_1_directory_and_1_file() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(1, 1)?;
-        let tree = run(dir, &mock_file_operations);
+        let tree = read_fs(dir, &mock_file_operations);
         assert_eq!(tree.name, "current");
         assert_eq!(tree.len.val, 1024 * 1024_u64);
         let mut iter = tree.entries.into_iter();
@@ -148,7 +149,7 @@ mod tests {
     #[test]
     fn test_run_with_2_directory_and_2_file() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(2, 2)?;
-        let tree = run(dir, &mock_file_operations);
+        let tree = read_fs(dir, &mock_file_operations);
         assert_eq!(tree.len.val, 1024 * 1024_u64 * 2_u64);
         assert_eq!(tree.name, "current");
         let mut iter = tree.entries.into_iter();
