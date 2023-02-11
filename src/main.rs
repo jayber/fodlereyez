@@ -1,11 +1,10 @@
 use std::env;
 use std::path::PathBuf;
 
-use crate::file_analysis::run;
+use crate::file_analysis::read_fs;
 use crate::real_proxies::RealFileOperations;
-use crate::tui::view;
+use crate::tui::display_result;
 
-mod color;
 mod file_analysis;
 mod real_proxies;
 mod tui;
@@ -22,6 +21,6 @@ fn main() {
         })
         .unwrap_or(env::current_dir().expect("error getting `current_dir`"));
     println!("working on {}...", root_directory.to_str().unwrap());
-    let result = run(root_directory, &RealFileOperations);
-    view(result);
+    let result = read_fs(root_directory, &RealFileOperations);
+    display_result(result);
 }

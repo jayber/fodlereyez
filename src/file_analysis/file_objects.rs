@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::{fmt, mem};
 
 pub(crate) struct DirectoryTree {
@@ -7,11 +8,43 @@ pub(crate) struct DirectoryTree {
 }
 
 impl DirectoryTree {
-    pub fn add_directory(&mut self, tree: DirectoryTree) { self.entries.push(DirectoryEntry::Folder(tree)); }
-    pub fn add_file(&mut self, name: String, len: Byteable) { self.entries.push(DirectoryEntry::File { name, len }); }
+    pub fn find(&self, path: &PathBuf) -> Option<&DirectoryTree> {
+        self.entries
+            .iter()
+            .find(|&entry| match entry {
+                DirectoryEntry::File { path: entry_path, .. } => path == entry_path,
+                DirectoryEntry::Folder { path: entry_path, .. } => path.starts_with(entry_path),
+                DirectoryEntry::Rollup { path: entry_path, .. } => path.starts_with(entry_path)
+            })
+            .map_or(Some(self), |entry| match entry {
+                DirectoryEntry::File { .. } => {
+                    panic!("Found a file while looking for a container")
+                }
+                DirectoryEntry::Folder { path: entry_path, branch, .. } => {
+                    if path == entry_path {
+                        Some(branch)
+                    } else {
+                        branch.find(path)
+                    }
+                }
+                DirectoryEntry::Rollup { path: entry_path, branch, .. } => {
+                    if path == entry_path {
+                        Some(branch)
+                    } else {
+                        branch.find(path)
+                    }
+                }
+            })
+    }
+    pub fn add_directory(&mut self, tree: DirectoryTree, path: PathBuf) {
+        self.entries.push(DirectoryEntry::Folder { branch: tree, path });
+    }
+    pub fn add_file(&mut self, name: String, len: Byteable, path: PathBuf) {
+        self.entries.push(DirectoryEntry::File { name, len, path });
+    }
     pub fn new(name: String) -> Self { DirectoryTree { name, len: Byteable { val: 0_u64 }, entries: vec![] } }
 
-    pub fn rollup(&mut self) {
+    pub fn rollup(&mut self, path: PathBuf) {
         self.entries.sort_by(|a, b| a.len().val.partial_cmp(&b.len().val).unwrap());
 
         let mut files: Vec<DirectoryEntry> = vec![];
@@ -27,43 +60,60 @@ impl DirectoryTree {
         }
 
         if !files.is_empty() {
-            self.entries.push(DirectoryEntry::new_rollup(files));
+            self.entries.push(DirectoryEntry::new_rollup(files, path));
         }
         self.entries.sort_by(|a, b| b.len().val.partial_cmp(&a.len().val).unwrap());
     }
 }
 
 pub(crate) enum DirectoryEntry {
-    File { name: String, len: Byteable },
-    Folder(DirectoryTree),
-    Rollup { len: Byteable, entries: Vec<DirectoryEntry> }
+    File { name: String, len: Byteable, path: PathBuf },
+    Folder { branch: DirectoryTree, path: PathBuf },
+    Rollup { branch: DirectoryTree, path: PathBuf }
 }
 
 pub(crate) const ROLLUP_NAME: &'static str = "<other files...>";
 
 impl DirectoryEntry {
-    fn new_rollup(entries: Vec<DirectoryEntry>) -> DirectoryEntry {
+    pub(crate) fn get_path(&self) -> PathBuf {
+        match self {
+            DirectoryEntry::File { path, .. } => path.clone(),
+            DirectoryEntry::Folder { path, .. } => path.clone(),
+            DirectoryEntry::Rollup { path, .. } => path.clone()
+        }
+    }
+    fn new_rollup(entries: Vec<DirectoryEntry>, path: PathBuf) -> DirectoryEntry {
         let len_sum = entries.iter().fold(0_u64, |a, b| b.len().val + a);
-        DirectoryEntry::Rollup { len: Byteable { val: len_sum }, entries }
+        let tree = DirectoryTree { name: String::from("other files"), len: Byteable { val: len_sum }, entries };
+        DirectoryEntry::Rollup { branch: tree, path }
+    }
+    pub fn has_children(&self) -> bool {
+        match self {
+            DirectoryEntry::File { .. } => false,
+            DirectoryEntry::Folder { branch, .. } => !branch.entries.is_empty(),
+            DirectoryEntry::Rollup { .. } => true
+        }
     }
     pub fn is_dir(&self) -> bool {
         match self {
             DirectoryEntry::File { .. } => false,
-            DirectoryEntry::Folder(_) => true,
+            DirectoryEntry::Folder { .. } => true,
             DirectoryEntry::Rollup { .. } => false
         }
     }
     pub fn len(&self) -> &Byteable {
         match self {
-            DirectoryEntry::File { name: _, len } => len,
-            DirectoryEntry::Folder(dir) => &dir.len,
-            DirectoryEntry::Rollup { len: val, .. } => val
+            DirectoryEntry::File { name: _, len, .. } => len,
+            DirectoryEntry::Folder { branch, .. } => &branch.len,
+            DirectoryEntry::Rollup { branch, .. } => &branch.len
         }
     }
     pub fn name(&self) -> String {
         match self {
-            DirectoryEntry::File { name, len: _ } => name.clone(),
-            DirectoryEntry::Folder(dir) => dir.name.clone() + std::path::MAIN_SEPARATOR.to_string().as_str(),
+            DirectoryEntry::File { name, .. } => name.clone(),
+            DirectoryEntry::Folder { branch, .. } => {
+                branch.name.clone() + std::path::MAIN_SEPARATOR.to_string().as_str()
+            }
             DirectoryEntry::Rollup { .. } => String::from(ROLLUP_NAME)
         }
     }

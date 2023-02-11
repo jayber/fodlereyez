@@ -1,10 +1,10 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::fs;
 use std::fs::{DirEntry, FileType, Metadata, ReadDir};
 use std::path::PathBuf;
+use std::{fs, mem};
 
-use crate::file_analysis::proxies::{DirPathEntryProxy, FileSystemProxy, FileTypeProxy, MetadataProxy, ReadDirProxy};
+use crate::file_analysis::proxies::*;
 
 pub(crate) struct RealFileOperations;
 
@@ -13,7 +13,7 @@ impl FileSystemProxy for RealFileOperations {
         &self, directory: &PathBuf
     ) -> Result<Box<dyn ReadDirProxy<Item = Result<Box<dyn DirPathEntryProxy>, Box<dyn Error>>>>, Box<dyn Error>> {
         let read_dir = fs::read_dir(directory).map_err(|e| FSProxyError { path: directory.clone(), source: e })?;
-        Ok(Box::new(RealReadDir::new(read_dir)))
+        Ok(Box::new(RealReadDir::new(read_dir, directory.clone())))
     }
     fn metadata(&self, path: &PathBuf) -> Result<Box<dyn MetadataProxy>, Box<dyn Error>> {
         Ok(Box::new(RealMetadataProxy {
@@ -46,11 +46,12 @@ impl Error for FSProxyError {
 }
 
 pub(crate) struct RealReadDir {
-    read_dir: ReadDir
+    read_dir: ReadDir,
+    path: PathBuf
 }
 
 impl RealReadDir {
-    fn new(read_dir: ReadDir) -> RealReadDir { Self { read_dir } }
+    fn new(read_dir: ReadDir, directory: PathBuf) -> RealReadDir { Self { read_dir, path: directory } }
 }
 
 impl Iterator for RealReadDir {
@@ -60,7 +61,12 @@ impl Iterator for RealReadDir {
     }
 }
 
-impl ReadDirProxy for RealReadDir {}
+impl ReadDirProxy for RealReadDir {
+    fn path(&mut self) -> PathBuf {
+        let path = mem::replace(&mut self.path, PathBuf::new());
+        path
+    }
+}
 
 struct RealDirPathEntry {
     fs_dir_path: DirEntry
