@@ -1,16 +1,15 @@
 use std::path::PathBuf;
 
-use cursive::align::HAlign;
 use cursive::event::Key;
 use cursive::theme::{BorderStyle, Color, Effect, Palette, Style, Theme};
 use cursive::view::Resizable;
-use cursive::views::{DummyView, LinearLayout, ResizedView, ScrollView, TextView};
+use cursive::views::{LinearLayout, ResizedView, ScrollView, TextView};
 use cursive::With;
 
 use color::convert_file_size_to_color;
 use selectable_text_view::SelectableTextView;
 
-use crate::file_analysis::file_objects::{DirectoryEntry, DirectoryTree};
+use crate::file_analysis::file_types::{DirectoryEntry, DirectoryTree};
 
 mod color;
 mod selectable_text_view;
@@ -29,63 +28,71 @@ pub(crate) fn build_views(
 ) -> ResizedView<LinearLayout> {
     let root_layout =
         LinearLayout::vertical().child(TextView::new(format!("{}, size: {}", directory_tree.name, directory_tree.len)));
+    let mut entries_layout = LinearLayout::vertical();
 
-    let mut name_column = LinearLayout::vertical();
-    let col_padding = LinearLayout::vertical().fixed_width(1);
-    let mut size_column = LinearLayout::vertical();
-
-    add_back_entry(directory_tree, &current_directory, &mut name_column, &mut size_column);
-
-    for branch in directory_tree.entries.iter() {
-        let (name_view, size_view, color) = create_view_entry(branch);
-        let name_view = SelectableTextView::new(name_view, branch.has_children(), color, branch.get_path());
-        name_column.add_child(name_view);
-        size_column.add_child(size_view);
+    if let Some(back) = create_back_entry(directory_tree, &current_directory) {
+        entries_layout.add_child(back)
     }
-    let mut columns = LinearLayout::horizontal();
-    columns = columns.child(name_column).child(col_padding).child(size_column);
-    root_layout.child(ScrollView::new(columns)).full_screen()
+
+    let mut enumerate = directory_tree.entries.iter().enumerate();
+    while let Some((count, branch)) = enumerate.next() {
+        if count > 10 {
+            entries_layout.add_child(create_more_entry(&current_directory));
+            break;
+        }
+        entries_layout.add_child(create_view_entry(branch));
+    }
+
+    root_layout.child(ScrollView::new(entries_layout)).full_screen()
 }
 
-fn add_back_entry(
-    directory_tree: &DirectoryTree, current_directory: &Option<PathBuf>, name_column: &mut LinearLayout,
-    size_column: &mut LinearLayout
-) {
+fn create_more_entry(path: &Option<PathBuf>) -> SelectableTextView {
+    SelectableTextView::new(
+        path.as_ref().unwrap_or(&PathBuf::default()).clone(),
+        "more...".to_string(),
+        String::new(),
+        None,
+        Style::from(Effect::Simple),
+        true
+    )
+}
+
+fn create_back_entry(
+    directory_tree: &DirectoryTree, current_directory: &Option<PathBuf>
+) -> Option<SelectableTextView> {
     if let Some(dir) = &current_directory {
         if let Some(name) = dir.to_str() {
             if name != directory_tree.name {
                 let parent_option = dir.parent().map(|p| p.to_path_buf());
                 if let Some(parent) = parent_option {
-                    name_column.add_child(SelectableTextView::new(
-                        TextView::new("⮬.."),
-                        true,
-                        Color::Rgb(255, 255, 255),
-                        parent
+                    return Some(SelectableTextView::new(
+                        parent,
+                        "⮬..".to_string(),
+                        String::new(),
+                        None,
+                        Style::from(Effect::Simple),
+                        true
                     ));
-                    size_column.add_child(DummyView);
                 }
             }
         }
     }
+    None
 }
 
-fn create_view_entry(branch: &DirectoryEntry) -> (TextView, TextView, Color) {
-    let mut name = TextView::new(branch.name());
-    let mut size = TextView::new(branch.len().to_string()).h_align(HAlign::Right);
-    let mut style = Style::from(match branch {
-        DirectoryEntry::Folder { .. } => Style::from(Effect::Simple),
-        DirectoryEntry::File { .. } => Style::from(Effect::Italic),
-        DirectoryEntry::Rollup { .. } => Style::from(Effect::Italic)
-    });
-
-    if !branch.has_children() {
-        style = style.combine(Effect::Dim);
-    }
-    let color = color_for_size(branch.len().val);
-    let style = style.combine(color);
-    name.set_style(style);
-    size.set_style(color);
-    (name, size, color)
+fn create_view_entry(branch: &DirectoryEntry) -> SelectableTextView {
+    SelectableTextView::new(
+        branch.get_path(),
+        branch.name(),
+        "This is a random comment.".to_string(),
+        Some(branch.len()),
+        Style::from(match branch {
+            DirectoryEntry::Folder { .. } => Style::from(Effect::Simple),
+            DirectoryEntry::File { .. } => Style::from(Effect::Italic),
+            DirectoryEntry::Rollup { .. } => Style::from(Effect::Italic)
+        }),
+        branch.has_children()
+    )
 }
 
 fn color_for_size(size: u64) -> Color {
@@ -114,7 +121,7 @@ fn build_theme() -> Theme {
 
 #[cfg(test)]
 mod tests {
-    use crate::file_analysis::file_objects::DirectoryTree;
+    use crate::file_analysis::file_types::DirectoryTree;
 
     // use crate::tui::build_views;
 

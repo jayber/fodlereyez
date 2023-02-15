@@ -1,11 +1,11 @@
 use std::error::Error;
 use std::path::PathBuf;
 
-use file_objects::{Byteable, DirectoryTree};
-use proxies::{DirPathEntryProxy, FileSystemProxy, ReadDirProxy};
+use file_system_proxies::{DirPathEntryProxy, FileSystemProxy, ReadDirProxy};
+use file_types::{Byteable, DirectoryTree};
 
-pub(crate) mod file_objects;
-pub(crate) mod proxies;
+pub(crate) mod file_system_proxies;
+pub(crate) mod file_types;
 
 pub(crate) fn read_fs(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryTree {
     calc_directory_tree(String::from(current_dir.to_str().unwrap()), &current_dir, file_operations)
