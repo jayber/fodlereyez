@@ -62,10 +62,7 @@ impl Iterator for RealReadDir {
 }
 
 impl ReadDirProxy for RealReadDir {
-    fn path(&mut self) -> PathBuf {
-        let path = mem::replace(&mut self.path, PathBuf::new());
-        path
-    }
+    fn path(&mut self) -> PathBuf { mem::take(&mut self.path) }
 }
 
 struct RealDirPathEntry {

@@ -2,7 +2,7 @@
 
 This is an exercise in
 
-1. File and folder listing and iterating in rust
+1. File and folder listing and iterating in Rust
 2. Which became an exercise in mocking external libraries for unit tests in Rust
 3. And then a learning how to handle references and borrowing exercise.
 

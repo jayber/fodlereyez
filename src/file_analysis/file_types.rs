@@ -18,7 +18,10 @@ impl DirectoryTree {
             })
             .map_or(Some(self), |entry| match entry {
                 DirectoryEntry::File { .. } => {
-                    panic!("Found a file while looking for a container")
+                    // todo - i think only have to do this because not detecting match to current
+                    // directory, which is because it isn't a DirectoryEntry, just a DirectoryTree
+                    // panic!("Found a file while looking for a container")
+                    Some(self)
                 }
                 DirectoryEntry::Folder { path: entry_path, branch, .. } => {
                     if path == entry_path {
@@ -48,7 +51,7 @@ impl DirectoryTree {
         self.entries.sort_by(|a, b| a.len().val.partial_cmp(&b.len().val).unwrap());
 
         let mut files: Vec<DirectoryEntry> = vec![];
-        let inner_entries = mem::replace(&mut self.entries, vec![]);
+        let inner_entries = mem::take(&mut self.entries);
         let mut still = true;
         for entry in inner_entries {
             if !entry.is_dir() && still {
@@ -72,7 +75,7 @@ pub(crate) enum DirectoryEntry {
     Rollup { branch: DirectoryTree, path: PathBuf }
 }
 
-pub(crate) const ROLLUP_NAME: &'static str = "<other files...>";
+pub(crate) const ROLLUP_NAME: &str = "<other files...>";
 
 impl DirectoryEntry {
     pub(crate) fn get_path(&self) -> PathBuf {
@@ -86,13 +89,6 @@ impl DirectoryEntry {
         let len_sum = entries.iter().fold(0_u64, |a, b| b.len().val + a);
         let tree = DirectoryTree { name: String::from("other files"), len: Byteable { val: len_sum }, entries };
         DirectoryEntry::Rollup { branch: tree, path }
-    }
-    pub fn has_children(&self) -> bool {
-        match self {
-            DirectoryEntry::File { .. } => false,
-            DirectoryEntry::Folder { branch, .. } => !branch.entries.is_empty(),
-            DirectoryEntry::Rollup { .. } => true
-        }
     }
     pub fn is_dir(&self) -> bool {
         match self {
