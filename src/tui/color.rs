@@ -78,11 +78,11 @@ fn check_bounds(hue: f64, saturation: f64, value: f64) {
         panic!("param {} must be between {} and {} inclusive; was: {}", name, from_value, to_value, supplied)
     }
 
-    if hue < 0.0 || hue > 360.0 {
+    if !(0.0..=360.0).contains(&hue) {
         panic_bad_params("hue", "0.0", "360.0", hue)
-    } else if saturation < 0.0 || saturation > 1.0 {
+    } else if !(0.0..=1.0).contains(&saturation) {
         panic_bad_params("saturation", "0.0", "1.0", saturation)
-    } else if value < 0.0 || value > 1.0 {
+    } else if !(0.0..=1.0).contains(&value) {
         panic_bad_params("value", "0.0", "1.0", value)
     }
 }

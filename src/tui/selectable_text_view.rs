@@ -12,21 +12,24 @@ use cursive::views::{DummyView, Layer, LinearLayout, TextView};
 use cursive::{Cursive, Printer, Vec2, View};
 
 use crate::file_analysis::file_types::{Byteable, DirectoryTree};
-use crate::tui::color_for_size;
+use crate::tui::{build_views, color_for_size};
 
 pub(crate) struct SelectableTextView {
     inner_view: Layer<LinearLayout>,
-    is_selectable: bool,
+    selectable: bool,
     color: Color,
-    path: PathBuf
+    path: PathBuf,
+    page_size: u8,
+    page: usize
 }
 
 impl SelectableTextView {
     pub(crate) fn new(
-        path: PathBuf, name: String, comment: String, size: Option<&Byteable>, mut style: Style, selectable: bool
+        path: PathBuf, name: String, comment: String, size: Option<&Byteable>, mut style: Style, selectable: bool,
+        page_size: u8, page: usize
     ) -> Self {
         let mut name_view = TextView::new(name);
-        let comment_view = TextView::new(comment);
+        let comment_view = TextView::new(comment).style(ColorStyle::inherit_parent());
         let mut size_view = TextView::new(size.map_or("".to_string(), |v| v.to_string())).h_align(HAlign::Right);
         let color = if let Some(size) = size { color_for_size(size.val) } else { Color::Rgb(255, 255, 255) };
 
@@ -44,43 +47,40 @@ impl SelectableTextView {
             .child(size_view.with_name("").fixed_width(10));
         let mut inner_view = Layer::new(linear_layout);
         inner_view.set_color(ColorStyle::new(color, TerminalDefault));
-        Self { inner_view, is_selectable: selectable, color, path }
+        Self { inner_view, selectable, color, path, page_size, page }
     }
 
     pub(crate) fn select_style(&mut self, select: bool) {
-        let mut color_style = self.inner_view.color().invert();
-        if select {
-            color_style.front = ColorType::Color(Color::Rgb(0, 0, 0));
+        let (front, back) = if select {
+            (ColorType::Color(Color::Rgb(0, 0, 0)), ColorType::Color(self.color))
         } else {
-            color_style.back = ColorType::Color(TerminalDefault);
-        }
+            (ColorType::Color(self.color), ColorType::Color(TerminalDefault))
+        };
+        let color_style = ColorStyle::new(front, back);
         self.inner_view.set_color(color_style);
         self.inner_view.call_on_all::<TextView, _>(Selector::Name("").borrow(), |view: &mut TextView| {
             view.set_style(Style::from(color_style))
         });
-        let comment_color_style = if select {
-            ColorStyle::new(Color::Rgb(0, 0, 0), self.color)
-        } else {
-            ColorStyle::new(Color::Rgb(255, 255, 255), TerminalDefault)
-        };
+
         self.inner_view.call_on_all::<TextView, _>(Selector::Name("comment").borrow(), |view: &mut TextView| {
-            view.set_style(Style::from(comment_color_style))
+            view.set_style(Style::from(if select {
+                ColorStyle::new(Color::Rgb(0, 0, 0), self.color)
+            } else {
+                ColorStyle::new(Color::Rgb(255, 255, 255), TerminalDefault)
+            }))
         })
     }
 
     fn get_callback(&self) -> Box<dyn Fn(&mut Cursive)> {
         let path = self.path.clone();
+        let page_size = self.page_size;
+        let page = self.page;
         Box::new({
             move |siv: &mut Cursive| {
-                siv.pop_layer();
-                if let Some(tree) = siv.user_data::<DirectoryTree>() {
-                    match tree.find(&path) {
-                        Some(branch) => {
-                            let view = crate::tui::build_views(branch, Some(path.clone()));
-                            siv.add_layer(view);
-                        }
-                        None => ()
-                    }
+                if let Some(branch) = siv.user_data::<DirectoryTree>().and_then(|tree| tree.find(&path)) {
+                    let view = build_views(branch, Some(path.clone()), page_size, page);
+                    siv.pop_layer();
+                    siv.add_layer(view);
                 }
             }
         })
@@ -97,9 +97,9 @@ impl View for SelectableTextView {
                 self.select_style(false);
                 EventResult::Consumed(None)
             }
-            Event::Key(Key::Enter) if self.is_selectable => EventResult::with_cb(self.get_callback()),
-            Event::Char(' ') if self.is_selectable => EventResult::with_cb(self.get_callback()),
-            Event::Mouse { event: MouseEvent::Release(MouseButton::Left), .. } if self.is_selectable => {
+            Event::Key(Key::Enter) if self.selectable => EventResult::with_cb(self.get_callback()),
+            Event::Char(' ') if self.selectable => EventResult::with_cb(self.get_callback()),
+            Event::Mouse { event: MouseEvent::Release(MouseButton::Left), .. } if self.selectable => {
                 EventResult::with_cb(self.get_callback())
             }
             _ => EventResult::Ignored
@@ -107,7 +107,7 @@ impl View for SelectableTextView {
     }
 
     fn take_focus(&mut self, _source: Direction) -> Result<EventResult, CannotFocus> {
-        if self.is_selectable {
+        if self.selectable {
             self.select_style(true);
             Ok(EventResult::Consumed(None))
         } else {
