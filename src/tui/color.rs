@@ -10,7 +10,7 @@ fn size_to_hsv(size: u64) -> (f64, f64, f64) {
     const HUE_MAX: f64 = 1024_f64 * 1024_f64 * 1024_f64 * 100_f64;
     const SATURATION_MAX: f64 = 1024_f64 * 1024_f64 * 500_f64;
     const VALUE_MAX: f64 = 1024_f64 * 1024_f64 * 1024_f64 * 200_f64;
-    const LOWEST_VALUE: f64 = 0.55;
+    const LOWEST_VALUE: f64 = 0.65;
     let size = size as f64;
 
     (
@@ -46,6 +46,7 @@ fn calc_hue(size: f64, hue_min: f64, hue_max: f64, base_hue: f64) -> f64 {
     (hue_scale * base_hue * 100_f64).round() / 100_f64
 }
 
+// todo worth publishing to crates.io? as hsv package
 fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> (u8, u8, u8) {
     fn is_between(value: f64, min: f64, max: f64) -> bool { min <= value && value < max }
 

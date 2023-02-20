@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use mockall::{mock, Sequence};
 
-use super::file_system_proxies::*;
+use super::file_system_proxy_traits::*;
 
 mock! {
     pub(crate) MyReadDirProxy {}

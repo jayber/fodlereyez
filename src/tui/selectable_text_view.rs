@@ -14,6 +14,8 @@ use cursive::{Cursive, Printer, Vec2, View};
 use crate::file_analysis::file_types::{Byteable, DirectoryTree};
 use crate::tui::{build_views, color_for_size};
 
+/* todo this is really at least 2 structs, one for actual fs entries and one for meta entries like more and <other files...>
+eg page and page_size might only be necessary for more; comment and size for fs entries */
 pub(crate) struct SelectableTextView {
     inner_view: Layer<LinearLayout>,
     selectable: bool,
@@ -29,7 +31,7 @@ impl SelectableTextView {
         page_size: u8, page: usize
     ) -> Self {
         let mut name_view = TextView::new(name);
-        let comment_view = TextView::new(comment).style(ColorStyle::inherit_parent());
+        let comment_view = TextView::new(comment);
         let mut size_view = TextView::new(size.map_or("".to_string(), |v| v.to_string())).h_align(HAlign::Right);
         let color = if let Some(size) = size { color_for_size(size.val) } else { Color::Rgb(255, 255, 255) };
 
@@ -42,7 +44,8 @@ impl SelectableTextView {
         size_view.set_style(color);
         let linear_layout = LinearLayout::horizontal()
             .child(name_view.with_name("").full_width())
-            .child(comment_view.with_name("comment").fixed_width(30))
+            .child(DummyView.fixed_width(1))
+            .child(comment_view.with_name("comment").fixed_width(45))
             .child(DummyView.fixed_width(1))
             .child(size_view.with_name("").fixed_width(10));
         let mut inner_view = Layer::new(linear_layout);
@@ -66,7 +69,7 @@ impl SelectableTextView {
             view.set_style(Style::from(if select {
                 ColorStyle::new(Color::Rgb(0, 0, 0), self.color)
             } else {
-                ColorStyle::new(Color::Rgb(255, 255, 255), TerminalDefault)
+                ColorStyle::new(TerminalDefault, TerminalDefault)
             }))
         })
     }

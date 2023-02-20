@@ -4,7 +4,7 @@ use std::fs::{DirEntry, FileType, Metadata, ReadDir};
 use std::path::PathBuf;
 use std::{fs, mem};
 
-use crate::file_analysis::file_system_proxies::*;
+use crate::file_analysis::file_system_proxy_traits::*;
 
 pub(crate) struct RealFileOperations;
 
@@ -91,3 +91,5 @@ struct RealMetadataProxy {
 impl MetadataProxy for RealMetadataProxy {
     fn len(&self) -> u64 { self.metadata.len() }
 }
+
+// todo set of integration tests maybe?

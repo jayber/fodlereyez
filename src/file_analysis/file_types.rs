@@ -78,7 +78,7 @@ pub(crate) enum DirectoryEntry {
 pub(crate) const ROLLUP_NAME: &str = "<other files...>";
 
 impl DirectoryEntry {
-    pub(crate) fn get_path(&self) -> PathBuf {
+    pub(crate) fn get_path_clone(&self) -> PathBuf {
         match self {
             DirectoryEntry::File { path, .. } => path.clone(),
             DirectoryEntry::Folder { path, .. } => path.clone(),
@@ -89,6 +89,13 @@ impl DirectoryEntry {
         let len_sum = entries.iter().fold(0_u64, |a, b| b.len().val + a);
         let tree = DirectoryTree { name: String::from("other files"), len: Byteable { val: len_sum }, entries };
         DirectoryEntry::Rollup { branch: tree, path }
+    }
+    pub fn has_children(&self) -> bool {
+        match self {
+            DirectoryEntry::File { .. } => false,
+            DirectoryEntry::Folder { branch, .. } => !branch.entries.is_empty(),
+            DirectoryEntry::Rollup { .. } => true
+        }
     }
     pub fn is_dir(&self) -> bool {
         match self {

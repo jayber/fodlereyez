@@ -31,6 +31,7 @@ fn main() {
 
 fn get_arguments() -> (PathBuf, u8) {
     let args = Args::parse();
+    // todo most of this could be in CLAP validator
     let root_directory = args
         .root_directory
         .clone()

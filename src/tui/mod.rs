@@ -10,8 +10,10 @@ use color::convert_file_size_to_color;
 use selectable_text_view::SelectableTextView;
 
 use crate::file_analysis::file_types::{DirectoryEntry, DirectoryTree};
+use crate::tui::patterns::PATTERNS;
 
 mod color;
+mod patterns;
 mod selectable_text_view;
 
 pub(crate) fn display_result(directory_tree_root: DirectoryTree, page_size: u8) {
@@ -82,9 +84,9 @@ fn create_back_entry(
 
 fn create_view_entry(branch: &DirectoryEntry, page_size: u8) -> SelectableTextView {
     SelectableTextView::new(
-        branch.get_path(),
+        branch.get_path_clone(),
         branch.name(),
-        "This is a random comment.".to_string(),
+        find_comment(branch),
         Some(branch.len()),
         match branch {
             DirectoryEntry::Folder { .. } => Style::from(Effect::Simple),
@@ -93,12 +95,31 @@ fn create_view_entry(branch: &DirectoryEntry, page_size: u8) -> SelectableTextVi
         },
         match branch {
             DirectoryEntry::File { .. } => false,
-            DirectoryEntry::Folder { .. } => true,
-            DirectoryEntry::Rollup { .. } => false //this is just "in the meantime"
+            DirectoryEntry::Folder { .. } => branch.has_children(),
+            DirectoryEntry::Rollup { .. } => false // todo this is just "in the meantime"
         },
         page_size,
         0
     )
+}
+
+fn find_comment(branch: &DirectoryEntry) -> String {
+    let path = match branch {
+        DirectoryEntry::File { name, path, .. } => {
+            path.display().to_string() + std::path::MAIN_SEPARATOR.to_string().as_str() + name
+        }
+        DirectoryEntry::Folder { path, .. } => path.display().to_string(),
+        DirectoryEntry::Rollup { .. } => String::from("")
+    };
+    // println!("path: {}", path);
+    let mut comment = String::new();
+    for (a_comment, regex_set) in PATTERNS.iter() {
+        if let Ok(true) = regex_set.as_ref().map(|set| set.is_match(&path)) {
+            comment += a_comment;
+            comment += " ";
+        }
+    }
+    comment
 }
 
 fn color_for_size(size: u64) -> Color {

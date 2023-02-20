@@ -2,14 +2,16 @@
 name = "folder-size"
 version = "0.1.0"
 edition = "2021"
-description = """Analyses the file tree, from the supplied root_directory down, collecting size information for files and \
+description = """Analyses the file tree, from the supplied ROOT_DIRECTORY down, collecting size information for files and \
 folders, and displaying that in a navigable tree, colored and sorted by size. Press [Esc] to exit, navigate with arrow \
-keys and mouse, and select entry to open with [Enter], [Space] or left mouse click."""
+keys and mouse, and select entry with [Enter], [Space] or left mouse click to open."""
 
 [dependencies]
 cursive = { version = "0.20", default-features = false, features = ["crossterm-backend"] }
 cursive_table_view = "0.14"
 clap = { version = "4.1.4", features = ["derive", "cargo", "wrap_help"] }
+regex = "1"
+lazy_static = "1.4.0"
 
 [dev-dependencies]
 mockall = "0.11.3"
