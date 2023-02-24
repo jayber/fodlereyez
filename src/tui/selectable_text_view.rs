@@ -11,7 +11,7 @@ use cursive::view::{CannotFocus, Nameable, Selector};
 use cursive::views::{DummyView, Layer, LinearLayout, TextView};
 use cursive::{Cursive, Printer, Vec2, View};
 
-use crate::file_analysis::file_types::{Byteable, DirectoryTree};
+use crate::file_analysis::file_types::{Byteable, DirectoryEntry};
 use crate::tui::{build_views, color_for_size};
 
 /* todo this is really at least 2 structs, one for actual fs entries and one for meta entries like more and <other files...>
@@ -80,10 +80,11 @@ impl SelectableTextView {
         let page = self.page;
         Box::new({
             move |siv: &mut Cursive| {
-                if let Some(branch) = siv.user_data::<DirectoryTree>().and_then(|tree| tree.find(&path)) {
-                    let view = build_views(branch, Some(path.clone()), page_size, page);
-                    siv.pop_layer();
-                    siv.add_layer(view);
+                if let Some(found_entry) = siv.user_data::<DirectoryEntry>().and_then(|entry| entry.find(&path)) {
+                    if let Some(view) = build_views(found_entry, Some(path.clone()), page_size, page) {
+                        siv.pop_layer();
+                        siv.add_layer(view);
+                    }
                 }
             }
         })

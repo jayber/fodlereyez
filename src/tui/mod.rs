@@ -9,42 +9,52 @@ use cursive::With;
 use color::convert_file_size_to_color;
 use selectable_text_view::SelectableTextView;
 
-use crate::file_analysis::file_types::{DirectoryEntry, DirectoryTree};
+use crate::file_analysis::file_types::DirectoryEntry;
 use crate::tui::patterns::PATTERNS;
 
 mod color;
 mod patterns;
 mod selectable_text_view;
 
-pub(crate) fn display_result(directory_tree_root: DirectoryTree, page_size: u8) {
+pub(crate) fn display_result(root_entry: DirectoryEntry, page_size: u8) {
     let mut siv = cursive::default();
     siv.set_theme(build_theme());
-    siv.add_layer(build_views(&directory_tree_root, None, page_size, 0));
-    siv.set_user_data(directory_tree_root);
-    siv.add_global_callback(Key::Esc, |siv| siv.quit());
-    siv.run();
+    let option_view = build_views(&root_entry, None, page_size, 0);
+    if let Some(view) = option_view {
+        siv.add_layer(view);
+        siv.set_user_data(root_entry);
+        siv.add_global_callback(Key::Esc, |siv| siv.quit());
+        siv.run();
+    }
 }
 
 pub(crate) fn build_views(
-    directory_tree: &DirectoryTree, current_directory: Option<PathBuf>, page_size: u8, page: usize
-) -> ResizedView<LinearLayout> {
-    let root_layout =
-        LinearLayout::vertical().child(TextView::new(format!("{}, size: {}", directory_tree.name, directory_tree.len)));
-    let mut entries_layout = LinearLayout::vertical();
+    directory_entry: &DirectoryEntry, current_directory: Option<PathBuf>, page_size: u8, page: usize
+) -> Option<ResizedView<LinearLayout>> {
+    if let Some(entries) = directory_entry.entries() {
+        let root_layout = LinearLayout::vertical().child(TextView::new(format!(
+            "{}, size: {}",
+            directory_entry.get_path_clone().display(),
+            directory_entry.len()
+        )));
+        let mut entries_layout = LinearLayout::vertical();
 
-    if let Some(back) = create_back_entry(directory_tree, current_directory.as_ref(), page_size) {
-        entries_layout.add_child(back)
-    }
-
-    let enumerate = directory_tree.entries.iter().enumerate();
-    for (count, branch) in enumerate {
-        if count >= page_size as usize * (page + 1) {
-            entries_layout.add_child(create_more_entry(&current_directory, page_size, page));
-            break;
+        if let Some(back) = create_back_entry(directory_entry, page_size) {
+            entries_layout.add_child(back)
         }
-        entries_layout.add_child(create_view_entry(branch, page_size));
+
+        for (count, branch) in entries.iter().enumerate() {
+            if count >= page_size as usize * (page + 1) {
+                entries_layout.add_child(create_more_entry(&current_directory, page_size, page));
+                break;
+            }
+            entries_layout.add_child(create_view_entry(branch, page_size));
+        }
+
+        Some(root_layout.child(ScrollView::new(entries_layout)).full_screen())
+    } else {
+        None
     }
-    root_layout.child(ScrollView::new(entries_layout)).full_screen()
 }
 
 fn create_more_entry(path: &Option<PathBuf>, page_size: u8, page: usize) -> SelectableTextView {
@@ -60,33 +70,27 @@ fn create_more_entry(path: &Option<PathBuf>, page_size: u8, page: usize) -> Sele
     )
 }
 
-fn create_back_entry(
-    directory_tree: &DirectoryTree, current_directory: Option<&PathBuf>, page_size: u8
-) -> Option<SelectableTextView> {
-    let directory = PathBuf::from(directory_tree.name.clone());
-    current_directory
-        .filter(|&path| path != &directory)
-        .and_then(|path| path.parent())
-        .map(|path| path.to_path_buf())
-        .map(|parent| {
-            SelectableTextView::new(
-                parent,
-                "⮬..".to_string(),
-                String::new(),
-                None,
-                Style::from(Effect::Simple),
-                true,
-                page_size,
-                0
-            )
-        })
+fn create_back_entry(directory_tree: &DirectoryEntry, page_size: u8) -> Option<SelectableTextView> {
+    let directory = directory_tree.get_path_clone();
+    directory.parent().map(|path| path.to_path_buf()).map(|parent| {
+        SelectableTextView::new(
+            parent,
+            "⮬..".to_string(),
+            String::new(),
+            None,
+            Style::from(Effect::Simple),
+            true,
+            page_size,
+            0
+        )
+    })
 }
 
 fn create_view_entry(branch: &DirectoryEntry, page_size: u8) -> SelectableTextView {
     SelectableTextView::new(
         branch.get_path_clone(),
         branch.name(),
-        find_comment(branch),
+        match_comment(branch),
         Some(branch.len()),
         match branch {
             DirectoryEntry::Folder { .. } => Style::from(Effect::Simple),
@@ -103,11 +107,10 @@ fn create_view_entry(branch: &DirectoryEntry, page_size: u8) -> SelectableTextVi
     )
 }
 
-fn find_comment(branch: &DirectoryEntry) -> String {
+//todo whaaaaat?! make better!
+fn match_comment(branch: &DirectoryEntry) -> String {
     let path = match branch {
-        DirectoryEntry::File { name, path, .. } => {
-            path.display().to_string() + std::path::MAIN_SEPARATOR.to_string().as_str() + name
-        }
+        DirectoryEntry::File { path, .. } => path.display().to_string(),
         DirectoryEntry::Folder { path, .. } => path.display().to_string(),
         DirectoryEntry::Rollup { .. } => String::from("")
     };
@@ -148,14 +151,14 @@ fn build_theme() -> Theme {
 
 #[cfg(test)]
 mod tests {
-    use crate::file_analysis::file_types::DirectoryTree;
+    // use crate::file_analysis::file_types::DirectoryTree;
 
     // use crate::tui::build_views;
 
     #[test]
     #[ignore]
     fn test_build_views() {
-        let _tree = DirectoryTree::new(String::from("view"));
+        // let _tree = DirectoryTree::new();
         // let _views = build_views(tree);
         todo!()
     }

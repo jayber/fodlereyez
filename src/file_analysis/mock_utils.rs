@@ -40,7 +40,7 @@ fn expect_read_dir(
 ) {
     mock_file_operations.expect_read_dir().times(1).in_sequence(seq_read_dir).returning(move |_dir| {
         let mut mock_read_dir = MockMyReadDirProxy::new();
-        mock_read_dir.expect_path().times(1).returning(|| PathBuf::from("test"));
+        // mock_read_dir.expect_path().times(1).returning(|| PathBuf::from("test"));
         let mut seq = Sequence::new();
         for _i in 0..num_directories {
             expect_read_dir_next(true, &mut mock_read_dir, &mut seq);
