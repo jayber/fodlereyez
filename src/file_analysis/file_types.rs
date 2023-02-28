@@ -13,8 +13,8 @@ pub(crate) enum DirectoryEntry {
 //statics
 impl DirectoryEntry {
     fn new_rollup(entries: Vec<DirectoryEntry>, path: PathBuf) -> DirectoryEntry {
-        let len_sum = entries.iter().fold(0_u64, |a, b| b.len().val + a);
-        DirectoryEntry::Rollup { path, len: Byteable { val: len_sum }, entries }
+        let len_sum = entries.iter().fold(0_u64, |a, b| b.len().0 + a);
+        DirectoryEntry::Rollup { path, len: Byteable(len_sum), entries }
     }
     pub(crate) fn new_file(len: Byteable, path: PathBuf) -> DirectoryEntry { DirectoryEntry::File { len, path } }
 }
@@ -32,8 +32,8 @@ impl DirectoryEntry {
             DirectoryEntry::File { .. } => {}
             DirectoryEntry::Rollup { .. } => {}
             DirectoryEntry::Folder { entries, path, .. } => {
-                let mut old_entries = mem::replace(entries, Vec::new());
-                old_entries.sort_unstable_by_key(|a| a.len().val);
+                let mut old_entries = mem::take(entries);
+                old_entries.sort_unstable_by_key(|a| a.len().0);
 
                 let mut still_rolling_up = true;
                 let mut files = vec![];
@@ -49,7 +49,7 @@ impl DirectoryEntry {
                 if !files.is_empty() {
                     entries.push(DirectoryEntry::new_rollup(files, path.clone()));
                 }
-                entries.sort_unstable_by_key(|a| u64::MAX - a.len().val);
+                entries.sort_unstable_by_key(|a| u64::MAX - a.len().0);
             }
         }
     }
@@ -121,9 +121,7 @@ impl DirectoryEntry {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct Byteable {
-    pub val: u64
-}
+pub(crate) struct Byteable(pub u64);
 
 impl fmt::Display for Byteable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -140,10 +138,10 @@ const SCALES: [(u64, &str); 4] =
 impl Byteable {
     fn scale(&self, index: usize) -> (f64, &str) {
         if index == SCALES.len() {
-            (self.val as f64, "B")
+            (self.0 as f64, "B")
         } else {
             let cur_scale = SCALES[index];
-            let value = self.val as f64 / cur_scale.0 as f64;
+            let value = self.0 as f64 / cur_scale.0 as f64;
             if value >= 1.0 {
                 (value, cur_scale.1)
             } else {
@@ -160,14 +158,14 @@ mod tests {
 
         #[test]
         fn test_byteable_output() {
-            assert_eq!(Byteable { val: 100 }.to_string(), "100 B");
-            assert_eq!(Byteable { val: 999 }.to_string(), "999 B");
-            assert_eq!(Byteable { val: 1000 }.to_string(), "1000 B");
-            assert_eq!(Byteable { val: 1024 }.to_string(), "1 KB");
-            assert_eq!(Byteable { val: (1024 * 1024) - 1 }.to_string(), "1023.99 KB");
-            assert_eq!(Byteable { val: (1024 * 1024) }.to_string(), "1 MB");
-            assert_eq!(Byteable { val: (1024 * 1024 * 1024) - 1 }.to_string(), "1023.99 MB");
-            assert_eq!(Byteable { val: (1024 * 1024 * 1024) }.to_string(), "1 GB");
+            assert_eq!(Byteable(100).to_string(), "100 B");
+            assert_eq!(Byteable(999).to_string(), "999 B");
+            assert_eq!(Byteable(1000).to_string(), "1000 B");
+            assert_eq!(Byteable(1024).to_string(), "1 KB");
+            assert_eq!(Byteable((1024 * 1024) - 1).to_string(), "1023.99 KB");
+            assert_eq!(Byteable(1024 * 1024).to_string(), "1 MB");
+            assert_eq!(Byteable((1024 * 1024 * 1024) - 1).to_string(), "1023.99 MB");
+            assert_eq!(Byteable(1024 * 1024 * 1024).to_string(), "1 GB");
         }
     }
 
@@ -183,17 +181,13 @@ mod tests {
             #[test]
             fn test_rollup() {
                 let mut entries = vec![];
-                entries.push(DirectoryEntry::new_file(Byteable { val: 0 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 1 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 2 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 3 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 4 }, PathBuf::new()));
-                entries.push(DirectoryEntry::Folder {
-                    path: PathBuf::new(),
-                    len: Byteable { val: 5 },
-                    entries: vec![]
-                });
-                let mut entry = DirectoryEntry::Folder { entries, len: Byteable { val: 0 }, path: PathBuf::new() };
+                entries.push(DirectoryEntry::new_file(Byteable(0), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(1), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(2), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(3), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(4), PathBuf::new()));
+                entries.push(DirectoryEntry::Folder { path: PathBuf::new(), len: Byteable(5), entries: vec![] });
+                let mut entry = DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::new() };
                 entry.rollup();
                 let result = entry.entries().expect("no entries");
                 assert_eq!(2, result.len());
@@ -202,17 +196,13 @@ mod tests {
             #[test]
             fn test_rollup_nothing_to_roll() {
                 let mut entries = vec![];
-                entries.push(DirectoryEntry::new_file(Byteable { val: 6 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 7 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 8 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 9 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 10 }, PathBuf::new()));
-                entries.push(DirectoryEntry::Folder {
-                    path: PathBuf::new(),
-                    len: Byteable { val: 5 },
-                    entries: vec![]
-                });
-                let mut entry = DirectoryEntry::Folder { entries, len: Byteable { val: 0 }, path: PathBuf::new() };
+                entries.push(DirectoryEntry::new_file(Byteable(6), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(7), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(8), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(9), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(10), PathBuf::new()));
+                entries.push(DirectoryEntry::Folder { path: PathBuf::new(), len: Byteable(5), entries: vec![] });
+                let mut entry = DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::new() };
                 entry.rollup();
                 let result = entry.entries().expect("no entries");
                 assert_eq!(6, result.len());
@@ -221,24 +211,20 @@ mod tests {
             #[test]
             fn test_rollup_with_both() {
                 let mut entries = vec![];
-                entries.push(DirectoryEntry::new_file(Byteable { val: 1 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 1 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 2 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 3 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 4 }, PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(1), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(1), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(2), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(3), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(4), PathBuf::new()));
 
-                entries.push(DirectoryEntry::Folder {
-                    path: PathBuf::new(),
-                    len: Byteable { val: 5 },
-                    entries: vec![]
-                });
+                entries.push(DirectoryEntry::Folder { path: PathBuf::new(), len: Byteable(5), entries: vec![] });
 
-                entries.push(DirectoryEntry::new_file(Byteable { val: 6 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 7 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 8 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 9 }, PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable { val: 10 }, PathBuf::new()));
-                let mut entry = DirectoryEntry::Folder { entries, len: Byteable { val: 0 }, path: PathBuf::new() };
+                entries.push(DirectoryEntry::new_file(Byteable(6), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(7), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(8), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(9), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(10), PathBuf::new()));
+                let mut entry = DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::new() };
                 entry.rollup();
                 let result = entry.entries().expect("no entries");
                 assert_eq!(7, result.len());
@@ -246,7 +232,7 @@ mod tests {
                     DirectoryEntry::File { .. } => panic!("file found when expecting rollup"),
                     DirectoryEntry::Folder { .. } => panic!("folder found when expecting rollup"),
                     DirectoryEntry::Rollup { len, entries, .. } => {
-                        assert_eq!(11, len.val);
+                        assert_eq!(11, len.0);
                         assert_eq!(5, entries.len());
                     }
                 }
@@ -258,20 +244,15 @@ mod tests {
 
             #[test]
             fn test_find_self() {
-                let entry =
-                    DirectoryEntry::Folder { entries: vec![], len: Byteable { val: 0 }, path: PathBuf::from("this") };
+                let entry = DirectoryEntry::Folder { entries: vec![], len: Byteable(0), path: PathBuf::from("this") };
                 assert_eq!(&entry, entry.find(&PathBuf::from("this")).expect("to find self"));
             }
 
             #[test]
             fn test_find_self_with_more_than_one_same_name() {
                 let mut entries = vec![];
-                entries.push(DirectoryEntry::Folder {
-                    entries: vec![],
-                    len: Byteable { val: 0 },
-                    path: PathBuf::from("this")
-                });
-                let entry = DirectoryEntry::Folder { entries, len: Byteable { val: 0 }, path: PathBuf::from("this") };
+                entries.push(DirectoryEntry::Folder { entries: vec![], len: Byteable(0), path: PathBuf::from("this") });
+                let entry = DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::from("this") };
                 assert_eq!(&entry, entry.find(&PathBuf::from("this")).expect("to find self"));
             }
 
@@ -280,32 +261,27 @@ mod tests {
                 let mut entries = vec![];
                 entries.push(DirectoryEntry::Folder {
                     entries: vec![],
-                    len: Byteable { val: 10 },
+                    len: Byteable(10),
                     path: PathBuf::from("this\\this")
                 });
-                let entry = DirectoryEntry::Folder { entries, len: Byteable { val: 0 }, path: PathBuf::from("this") };
-                assert_eq!(10, entry.find(&PathBuf::from("this\\this")).expect("to find other").len().val);
+                let entry = DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::from("this") };
+                assert_eq!(10, entry.find(&PathBuf::from("this\\this")).expect("to find other").len().0);
             }
 
             #[test]
             fn test_find_self_with_more_than_one_different_name() {
                 let mut entries = vec![];
-                entries.push(DirectoryEntry::Folder {
-                    entries: vec![],
-                    len: Byteable { val: 0 },
-                    path: PathBuf::from("that")
-                });
-                let entry = DirectoryEntry::Folder { entries, len: Byteable { val: 0 }, path: PathBuf::from("this") };
+                entries.push(DirectoryEntry::Folder { entries: vec![], len: Byteable(0), path: PathBuf::from("that") });
+                let entry = DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::from("this") };
                 assert_eq!(&entry, entry.find(&PathBuf::from("this")).expect("to find self"));
             }
 
             #[test]
             fn test_find_self_with_more_than_one_different_name_2() {
                 let mut entries = vec![];
-                let that =
-                    DirectoryEntry::Folder { entries: vec![], len: Byteable { val: 0 }, path: PathBuf::from("that") };
+                let that = DirectoryEntry::Folder { entries: vec![], len: Byteable(0), path: PathBuf::from("that") };
                 entries.push(that);
-                let entry = DirectoryEntry::Folder { entries, len: Byteable { val: 0 }, path: PathBuf::from("this") };
+                let entry = DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::from("this") };
                 assert_eq!("that\\", entry.find(&PathBuf::from("that")).expect("to find self").name());
             }
         }

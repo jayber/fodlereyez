@@ -27,6 +27,7 @@ pub(crate) struct SelectableTextView {
 }
 
 impl SelectableTextView {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         path: PathBuf, name: String, comment: String, size: Option<&Byteable>, mut style: Style, selectable: bool,
         page_size: u8, page: usize
@@ -34,7 +35,7 @@ impl SelectableTextView {
         let mut name_view = TextView::new(name);
         let comment_view = TextView::new(comment);
         let mut size_view = TextView::new(size.map_or("".to_string(), |v| v.to_string())).h_align(HAlign::Right);
-        let color = if let Some(size) = size { color_for_size(size.val) } else { Color::Rgb(255, 255, 255) };
+        let color = if let Some(size) = size { color_for_size(size.0) } else { Color::Rgb(255, 255, 255) };
 
         if !selectable {
             style = style.combine(Effect::Dim);
