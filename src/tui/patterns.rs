@@ -18,7 +18,7 @@ lazy_static! {
         ("Using words would only make me seem foolish.", RegexSet::new([r"\\(?i)Death[\w\s]*Stranding$"])),
         ("Grind Guardian!", RegexSet::new([r"\\Destiny[\w\s]*$"])),
         ("Dungeon-crawling roguelike top-down hack and slash demon slaughter.", RegexSet::new([r"\\(?i)diablo[\w\s]*$"])),
-        ("Very, well..., talky. Expect it to say \"end stage capitalism\" at any time. Has a hipster beard.", RegexSet::new([r"\\Disco Elysium$"])),
+        ("Very... well, talky. Expect it to say \"end stage capitalism\" at any time. Has a hipster beard.", RegexSet::new([r"\\Disco Elysium$"])),
         ("There are rats in this game, like, a lot of rats.", RegexSet::new([r"\\Dishonored[\w\s]*$"])),
         ("The never ending suffering of Doom guy.", RegexSet::new([r"\\(?i)doom[\w\s]*$"])),
         ("A naked pumpkin-headed guy.", RegexSet::new([r"\\ELDEN RING$"])),
@@ -33,7 +33,7 @@ lazy_static! {
         ("Low-rez Roblox.", RegexSet::new([r"\\Minecraft[\w\s\.]*$"])),
         ("Death Stranding on the moon.", RegexSet::new([r"\\Moon Runner$"])),
         ("I know nothing about this game.", RegexSet::new([r"\\League of Legends"])),
-        ("Beautiful and stylish turn-based tactical RPG, featuring female warriors who are fully clothed, in a possible video game first.", RegexSet::new([r"\\Othercide$"])),
+        ("Smart and stylish turn-based tactical RPG, featuring female warriors who are fully clothed, in a possible video game first.", RegexSet::new([r"\\Othercide$"])),
         ("A bit memey, but fine.", RegexSet::new([r"\\Overwatch[\w\s\.]*$"])),
         ("I've never even heard of Wipeout...", RegexSet::new([r"\\Redout\d*$"])),
         ("The Umbrella Corporation's finest!", RegexSet::new([r"\\(?i)resident\s*evil[\w\s\.]*$"])),
@@ -53,9 +53,13 @@ lazy_static! {
         ("Second Life in Middle Earth.", RegexSet::new([r"\\(?i)World Of Warcraft$"])),
 
         //SMART-ARSE
+        ("Some assembly required.", RegexSet::new([r"\\assembly$"])),
+        ("Das.", RegexSet::new([r"\\Boot$"])),
         ("I'm something of a scientist myself.", RegexSet::new([r"\\Elixir$", r"\\Julia$", r"\\R$", r"\\ucm-windows$", r"\\Python$", r"\\erl-[\w\s\.]*$"])),
         ("Get REALLY good at programming!", RegexSet::new([r"\\(?i)Exercism$"])),
+        ("Small washbasins in churches.", RegexSet::new([r"\\Fonts$"])),
         ("An old man, liable to be rude and uncooperative, who only understands obscure jargon.", RegexSet::new([r"\\Git$"])),
+        ("I love globs...", RegexSet::new([r"\\Globalization$"])),
         ("Whoogle? Never heard of them.", RegexSet::new([r"\\Google$"])),
         ("The best IDEs.", RegexSet::new([r"\\(?i)Jetbrains$"])),
         ("Reminds me of my grandpa: old, smelly and everyone is surprised to find he's still kicking around.", RegexSet::new([r"\\Internet Explorer$"])),
@@ -64,6 +68,7 @@ lazy_static! {
         ("R0XX0R", RegexSet::new([r"\\Razer$"])),
         ("The best DAW.", RegexSet::new([r"\\Renoise[\w\s\.]*$"])),
         ("Game or 🦀?", RegexSet::new([r"\\(?i)rust[\w\s]*$"])),
+        ("As in \"Wow, this is what you decided to name the 32bit binary directory?\"", RegexSet::new([r"\\SysWOW64$"])),
         ("Xbox games, maybe? I mean, I'm just guessing...", RegexSet::new([r"\\XboxGames$"])),
 
         //USEFUL INFO
@@ -71,7 +76,7 @@ lazy_static! {
         ("Games. Has its own app to add and remove them.", RegexSet::new([r"\\Epic Games$"])),
         ("Used by Windows to store contents of RAM during sleep or hibernate mode.", RegexSet::new([r"\\hiberfil.sys"])),
         ("Music production software.", RegexSet::new([r"\\(?i)native instruments$"])),
-        ("Graphics stuff.", RegexSet::new([r"\\(?i)nvidia[\w\s]*"])),
+        ("Graphics stuff.", RegexSet::new([r"\\(?i)nvidia[\w\s]*$"])),
         ("Virtual memory file used by Windows.", RegexSet::new([r"\\pagefile.sys"])),
         ("Database software.", RegexSet::new([r"\\(?i)PostgreSQL$"])),
         ("Programs might store data here 🙄", RegexSet::new([r"\\ProgramData$"])),

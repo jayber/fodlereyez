@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::path::PathBuf;
+use std::process::Command;
 
 use cursive::align::HAlign;
 use cursive::direction::Direction;
@@ -102,7 +103,10 @@ impl View for SelectableTextView {
                 EventResult::Consumed(None)
             }
             Event::Key(Key::Enter) if self.selectable => EventResult::with_cb(self.get_callback()),
-            Event::Char(' ') if self.selectable => EventResult::with_cb(self.get_callback()),
+            Event::Char(' ') if self.selectable => {
+                Command::new("explorer").arg(self.path.clone()).output().expect("Error opening in explorer");
+                EventResult::Consumed(None)
+            }
             Event::Mouse { event: MouseEvent::Release(MouseButton::Left), .. } if self.selectable => {
                 EventResult::with_cb(self.get_callback())
             }
