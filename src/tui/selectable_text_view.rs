@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use cursive::align::HAlign;
@@ -29,7 +29,7 @@ pub(crate) struct SelectableTextView {
 impl SelectableTextView {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        path: PathBuf, name: String, comment: String, size: Option<&Byteable>, mut style: Style, selectable: bool,
+        path: &Path, name: String, comment: String, size: Option<&Byteable>, mut style: Style, selectable: bool,
         page_size: u8, page: usize
     ) -> Self {
         let mut name_view = TextView::new(name);
@@ -50,9 +50,8 @@ impl SelectableTextView {
             .child(comment_view.with_name("comment").fixed_width(45))
             .child(DummyView.fixed_width(1))
             .child(size_view.with_name("").fixed_width(10));
-        let mut inner_view = Layer::new(linear_layout);
-        inner_view.set_color(ColorStyle::new(color, TerminalDefault));
-        Self { inner_view, selectable, color, path, page_size, page }
+        let inner_view = Layer::new(linear_layout);
+        Self { inner_view, selectable, color, path: path.to_path_buf(), page_size, page }
     }
 
     pub(crate) fn select_style(&mut self, select: bool) {
@@ -83,7 +82,7 @@ impl SelectableTextView {
         Box::new({
             move |siv: &mut Cursive| {
                 if let Some(found_entry) = siv.user_data::<DirectoryEntry>().and_then(|entry| entry.find(&path)) {
-                    if let Some(view) = build_views(found_entry, Some(path.clone()), page_size, page) {
+                    if let Some(view) = build_views(found_entry, page_size, page, found_entry.is_root()) {
                         siv.pop_layer();
                         siv.add_layer(view);
                     }

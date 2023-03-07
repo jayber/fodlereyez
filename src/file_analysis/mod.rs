@@ -9,14 +9,14 @@ pub(crate) mod file_system_proxy_traits;
 pub(crate) mod file_types;
 
 pub(crate) fn read_fs(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryEntry {
-    populate_tree(file_operations, current_dir)
+    populate_tree(file_operations, current_dir, true)
 }
 
-fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf) -> DirectoryEntry {
+fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, is_root: bool) -> DirectoryEntry {
     match file_operations.read_dir(&current_dir) {
         Err(e) => {
             eprintln!("error in read_dir: {}", e);
-            DirectoryEntry::Folder { path: current_dir, len: Byteable(0), entries: vec![] }
+            DirectoryEntry::Folder { path: current_dir, len: Byteable(0), entries: vec![], is_root }
         }
         Ok(read_dir) => {
             let mut len = 0_u64;
@@ -27,7 +27,7 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf) -
                 let dir = entry.path();
                 match entry.file_type().expect("error getting file type").is_dir() {
                     true => {
-                        let child = populate_tree(file_operations, dir);
+                        let child = populate_tree(file_operations, dir, false);
                         len += child.len().0;
                         entries.push(child);
                     }
@@ -43,7 +43,7 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf) -
                     }
                 }
             }
-            let mut entry = DirectoryEntry::Folder { path: current_dir, len: Byteable(len), entries };
+            let mut entry = DirectoryEntry::Folder { path: current_dir, len: Byteable(len), entries, is_root };
             entry.rollup();
             entry
         }

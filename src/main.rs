@@ -14,7 +14,7 @@ mod tui;
 #[derive(Parser)]
 #[command(about, long_about = None)]
 struct Args {
-    /// Optional. A valid directory to start analysing from. Use [drive-letter]:\ to indicate drive root on Windows.
+    /// Optional. A valid directory to start analysing from. Use "[drive-letter]:\" to indicate drive root on Windows.
     /// If none is supplied, or supplied value is not valid, will analyse from the current directory.
     root_directory: Option<String>,
     /// How many results to show per page load
