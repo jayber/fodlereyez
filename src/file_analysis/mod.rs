@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use file_system_proxy_traits::FileSystemProxy;
 use file_types::Byteable;
 
+use crate::file_analysis::file_system_proxy_traits::MetadataProxy;
 use crate::file_analysis::file_types::DirectoryEntry;
 
 pub(crate) mod file_system_proxy_traits;
@@ -14,9 +15,9 @@ pub(crate) fn read_fs(current_dir: PathBuf, file_operations: &impl FileSystemPro
 
 fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, is_root: bool) -> DirectoryEntry {
     match file_operations.read_dir(&current_dir) {
-        Err(e) => {
-            eprintln!("error in read_dir: {}", e);
-            DirectoryEntry::Folder { path: current_dir, len: Byteable(0), entries: vec![], is_root }
+        Err(_e) => {
+            // eprintln!("error in read_dir: {}", e);
+            DirectoryEntry::Folder { path: current_dir, len: Byteable(0), entries: vec![], is_root, is_hidden: false }
         }
         Ok(read_dir) => {
             let mut len = 0_u64;
@@ -35,19 +36,28 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, i
                         Ok(metadata) => {
                             len += metadata.len();
                             let len = Byteable(metadata.len());
-                            entries.push(DirectoryEntry::new_file(len, dir));
+                            let hidden = is_hidden(metadata);
+
+                            entries.push(DirectoryEntry::new_file(len, dir, hidden));
                         }
-                        Err(e) => {
-                            eprintln!("error in metadata: {}", e);
+                        Err(_e) => {
+                            // eprintln!("error in metadata: {}", e);
                         }
-                    }
+                    },
                 }
             }
-            let mut entry = DirectoryEntry::Folder { path: current_dir, len: Byteable(len), entries, is_root };
+            let hidden = file_operations.metadata(&current_dir).map(|m| is_hidden(m)).unwrap_or(true);
+
+            let mut entry =
+                DirectoryEntry::Folder { path: current_dir, len: Byteable(len), entries, is_root, is_hidden: hidden };
             entry.rollup();
             entry
         }
     }
+}
+
+fn is_hidden(metadata: Box<dyn MetadataProxy>) -> bool {
+    (metadata.file_attributes() & 0000000000000000000000000000010) == 2
 }
 
 #[cfg(test)]

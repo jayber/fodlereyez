@@ -5,9 +5,19 @@ pub(crate) const ROLLUP_NAME: &str = "<other files...>";
 
 #[derive(PartialEq, Debug)]
 pub(crate) enum DirectoryEntry {
-    File { len: Byteable, path: PathBuf },
-    Folder { path: PathBuf, len: Byteable, entries: Vec<DirectoryEntry>, is_root: bool },
-    Rollup { path: PathBuf, len: Byteable, entries: Vec<DirectoryEntry> }
+    File { len: Byteable, path: PathBuf, is_hidden: bool },
+    Folder { path: PathBuf, len: Byteable, entries: Vec<DirectoryEntry>, is_root: bool, is_hidden: bool },
+    Rollup { path: PathBuf, len: Byteable, entries: Vec<DirectoryEntry> },
+}
+
+impl DirectoryEntry {
+    pub(crate) fn is_hidden(&self) -> bool {
+        match self {
+            DirectoryEntry::File { is_hidden, .. } => *is_hidden,
+            DirectoryEntry::Folder { is_hidden, .. } => *is_hidden,
+            DirectoryEntry::Rollup { .. } => false,
+        }
+    }
 }
 
 //statics
@@ -16,7 +26,9 @@ impl DirectoryEntry {
         let len_sum = entries.iter().fold(0_u64, |a, b| b.len().0 + a);
         DirectoryEntry::Rollup { path, len: Byteable(len_sum), entries }
     }
-    pub(crate) fn new_file(len: Byteable, path: PathBuf) -> DirectoryEntry { DirectoryEntry::File { len, path } }
+    pub(crate) fn new_file(len: Byteable, path: PathBuf, is_hidden: bool) -> DirectoryEntry {
+        DirectoryEntry::File { len, path, is_hidden }
+    }
 }
 
 impl DirectoryEntry {
@@ -24,21 +36,21 @@ impl DirectoryEntry {
         match self {
             DirectoryEntry::File { .. } => false,
             DirectoryEntry::Folder { is_root, .. } => *is_root,
-            DirectoryEntry::Rollup { .. } => false
+            DirectoryEntry::Rollup { .. } => false,
         }
     }
     pub(crate) fn path(&self) -> &Path {
         match self {
             DirectoryEntry::File { path, .. } => path.as_path(),
             DirectoryEntry::Folder { path, .. } => path.as_path(),
-            DirectoryEntry::Rollup { path, .. } => path.as_path()
+            DirectoryEntry::Rollup { path, .. } => path.as_path(),
         }
     }
     pub(crate) fn entries(&self) -> Option<&Vec<DirectoryEntry>> {
         match self {
             DirectoryEntry::File { .. } => None,
             DirectoryEntry::Folder { entries, .. } => Some(entries),
-            DirectoryEntry::Rollup { entries, .. } => Some(entries)
+            DirectoryEntry::Rollup { entries, .. } => Some(entries),
         }
     }
     pub(crate) fn rollup(&mut self) {
@@ -85,7 +97,7 @@ impl DirectoryEntry {
             match self {
                 DirectoryEntry::File { .. } => None,
                 DirectoryEntry::Folder { entries, .. } => find_entry(entries, match_path),
-                DirectoryEntry::Rollup { entries, .. } => find_entry(entries, match_path)
+                DirectoryEntry::Rollup { entries, .. } => find_entry(entries, match_path),
             }
         }
     }
@@ -94,37 +106,28 @@ impl DirectoryEntry {
         match self {
             DirectoryEntry::File { path, .. } => path.parent(),
             DirectoryEntry::Folder { path, .. } => path.parent(),
-            DirectoryEntry::Rollup { path, .. } => path.parent()
+            DirectoryEntry::Rollup { path, .. } => path.parent(),
         }
     }
-    /*
-
-    pub(crate) fn get_parent(&self) -> PathBuf {
-        match self {
-            DirectoryEntry::File { path, .. } => path.clone(),
-            DirectoryEntry::Folder { path, .. } => path.clone(),
-            DirectoryEntry::Rollup { path, .. } => path.clone()
-        }
-    }*/
     pub fn has_children(&self) -> bool {
         match self {
             DirectoryEntry::File { .. } => false,
             DirectoryEntry::Folder { entries, .. } => !entries.is_empty(),
-            DirectoryEntry::Rollup { .. } => true
+            DirectoryEntry::Rollup { .. } => true,
         }
     }
     pub fn is_dir(&self) -> bool {
         match self {
             DirectoryEntry::File { .. } => false,
             DirectoryEntry::Folder { .. } => true,
-            DirectoryEntry::Rollup { .. } => false
+            DirectoryEntry::Rollup { .. } => false,
         }
     }
     pub fn len(&self) -> &Byteable {
         match self {
             DirectoryEntry::File { len, .. } => len,
             DirectoryEntry::Folder { len, .. } => len,
-            DirectoryEntry::Rollup { len, .. } => len
+            DirectoryEntry::Rollup { len, .. } => len,
         }
     }
     pub fn name(&self) -> String {
@@ -138,7 +141,7 @@ impl DirectoryEntry {
                 name.push(std::path::MAIN_SEPARATOR);
                 name
             }
-            DirectoryEntry::Rollup { .. } => String::from(ROLLUP_NAME)
+            DirectoryEntry::Rollup { .. } => String::from(ROLLUP_NAME),
         }
     }
 }
@@ -204,19 +207,25 @@ mod tests {
             #[test]
             fn test_rollup() {
                 let mut entries = vec![];
-                entries.push(DirectoryEntry::new_file(Byteable(0), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(1), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(2), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(3), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(4), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(0), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(1), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(2), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(3), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(4), PathBuf::new(), false));
                 entries.push(DirectoryEntry::Folder {
                     path: PathBuf::new(),
                     len: Byteable(5),
                     entries: vec![],
-                    is_root: false
+                    is_root: false,
+                    is_hidden: false,
                 });
-                let mut entry =
-                    DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::new(), is_root: true };
+                let mut entry = DirectoryEntry::Folder {
+                    entries,
+                    len: Byteable(0),
+                    path: PathBuf::new(),
+                    is_root: true,
+                    is_hidden: false,
+                };
                 entry.rollup();
                 let result = entry.entries().expect("no entries");
                 assert_eq!(2, result.len());
@@ -225,19 +234,25 @@ mod tests {
             #[test]
             fn test_rollup_nothing_to_roll() {
                 let mut entries = vec![];
-                entries.push(DirectoryEntry::new_file(Byteable(6), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(7), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(8), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(9), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(10), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(6), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(7), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(8), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(9), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(10), PathBuf::new(), false));
                 entries.push(DirectoryEntry::Folder {
                     path: PathBuf::new(),
                     len: Byteable(5),
                     entries: vec![],
-                    is_root: false
+                    is_root: false,
+                    is_hidden: false,
                 });
-                let mut entry =
-                    DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::new(), is_root: true };
+                let mut entry = DirectoryEntry::Folder {
+                    entries,
+                    len: Byteable(0),
+                    path: PathBuf::new(),
+                    is_root: true,
+                    is_hidden: false,
+                };
                 entry.rollup();
                 let result = entry.entries().expect("no entries");
                 assert_eq!(6, result.len());
@@ -246,26 +261,32 @@ mod tests {
             #[test]
             fn test_rollup_with_both() {
                 let mut entries = vec![];
-                entries.push(DirectoryEntry::new_file(Byteable(1), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(1), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(2), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(3), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(4), PathBuf::new()));
+                entries.push(DirectoryEntry::new_file(Byteable(1), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(1), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(2), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(3), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(4), PathBuf::new(), false));
 
                 entries.push(DirectoryEntry::Folder {
                     path: PathBuf::new(),
                     len: Byteable(5),
                     entries: vec![],
-                    is_root: false
+                    is_root: false,
+                    is_hidden: false,
                 });
 
-                entries.push(DirectoryEntry::new_file(Byteable(6), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(7), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(8), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(9), PathBuf::new()));
-                entries.push(DirectoryEntry::new_file(Byteable(10), PathBuf::new()));
-                let mut entry =
-                    DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::new(), is_root: true };
+                entries.push(DirectoryEntry::new_file(Byteable(6), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(7), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(8), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(9), PathBuf::new(), false));
+                entries.push(DirectoryEntry::new_file(Byteable(10), PathBuf::new(), false));
+                let mut entry = DirectoryEntry::Folder {
+                    entries,
+                    len: Byteable(0),
+                    path: PathBuf::new(),
+                    is_root: true,
+                    is_hidden: false,
+                };
                 entry.rollup();
                 let result = entry.entries().expect("no entries");
                 assert_eq!(7, result.len());
@@ -289,7 +310,8 @@ mod tests {
                     entries: vec![],
                     len: Byteable(0),
                     path: PathBuf::from("this"),
-                    is_root: true
+                    is_root: true,
+                    is_hidden: false,
                 };
                 assert_eq!(&entry, entry.find(&PathBuf::from("this")).expect("to find self"));
             }
@@ -301,10 +323,16 @@ mod tests {
                     entries: vec![],
                     len: Byteable(0),
                     path: PathBuf::from("this"),
-                    is_root: false
+                    is_root: false,
+                    is_hidden: false,
                 });
-                let entry =
-                    DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::from("this"), is_root: true };
+                let entry = DirectoryEntry::Folder {
+                    entries,
+                    len: Byteable(0),
+                    path: PathBuf::from("this"),
+                    is_root: true,
+                    is_hidden: false,
+                };
                 assert_eq!(&entry, entry.find(&PathBuf::from("this")).expect("to find self"));
             }
 
@@ -315,10 +343,16 @@ mod tests {
                     entries: vec![],
                     len: Byteable(10),
                     path: PathBuf::from("this\\this"),
-                    is_root: false
+                    is_root: false,
+                    is_hidden: false,
                 });
-                let entry =
-                    DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::from("this"), is_root: true };
+                let entry = DirectoryEntry::Folder {
+                    entries,
+                    len: Byteable(0),
+                    path: PathBuf::from("this"),
+                    is_root: true,
+                    is_hidden: false,
+                };
                 assert_eq!(10, entry.find(&PathBuf::from("this\\this")).expect("to find other").len().0);
             }
 
@@ -329,10 +363,16 @@ mod tests {
                     entries: vec![],
                     len: Byteable(0),
                     path: PathBuf::from("that"),
-                    is_root: false
+                    is_root: false,
+                    is_hidden: false,
                 });
-                let entry =
-                    DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::from("this"), is_root: true };
+                let entry = DirectoryEntry::Folder {
+                    entries,
+                    len: Byteable(0),
+                    path: PathBuf::from("this"),
+                    is_root: true,
+                    is_hidden: false,
+                };
                 assert_eq!(&entry, entry.find(&PathBuf::from("this")).expect("to find self"));
             }
 
@@ -343,11 +383,17 @@ mod tests {
                     entries: vec![],
                     len: Byteable(0),
                     path: PathBuf::from("that"),
-                    is_root: false
+                    is_root: false,
+                    is_hidden: false,
                 };
                 entries.push(that);
-                let entry =
-                    DirectoryEntry::Folder { entries, len: Byteable(0), path: PathBuf::from("this"), is_root: true };
+                let entry = DirectoryEntry::Folder {
+                    entries,
+                    len: Byteable(0),
+                    path: PathBuf::from("this"),
+                    is_root: true,
+                    is_hidden: false,
+                };
                 assert_eq!("that\\", entry.find(&PathBuf::from("that")).expect("to find self").name());
             }
         }

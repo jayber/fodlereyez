@@ -23,17 +23,18 @@ pub(crate) struct SelectableTextView {
     color: Color,
     path: PathBuf,
     page_size: u8,
-    page: usize
+    page: usize,
+    hide_comments: bool,
+    show_hidden: bool,
 }
 
 impl SelectableTextView {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         path: &Path, name: String, comment: String, size: Option<&Byteable>, mut style: Style, selectable: bool,
-        page_size: u8, page: usize
+        page_size: u8, page: usize, hide_comments: bool, show_hidden: bool,
     ) -> Self {
         let mut name_view = TextView::new(name);
-        let comment_view = TextView::new(comment);
         let mut size_view = TextView::new(size.map_or("".to_string(), |v| v.to_string())).h_align(HAlign::Right);
         let color = if let Some(size) = size { color_for_size(size.0) } else { Color::Rgb(255, 255, 255) };
 
@@ -44,14 +45,18 @@ impl SelectableTextView {
         let style = style.combine(color);
         name_view.set_style(style);
         size_view.set_style(color);
-        let linear_layout = LinearLayout::horizontal()
-            .child(name_view.with_name("").full_width())
-            .child(DummyView.fixed_width(1))
-            .child(comment_view.with_name("comment").fixed_width(45))
-            .child(DummyView.fixed_width(1))
-            .child(size_view.with_name("").fixed_width(10));
+        let mut linear_layout =
+            LinearLayout::horizontal().child(name_view.with_name("").full_width()).child(DummyView.fixed_width(1));
+
+        if !hide_comments {
+            linear_layout = linear_layout
+                .child(TextView::new(comment).with_name("comment").fixed_width(45))
+                .child(DummyView.fixed_width(1));
+        }
+
+        linear_layout = linear_layout.child(size_view.with_name("").fixed_width(10));
         let inner_view = Layer::new(linear_layout);
-        Self { inner_view, selectable, color, path: path.to_path_buf(), page_size, page }
+        Self { inner_view, selectable, color, path: path.to_path_buf(), page_size, page, hide_comments, show_hidden }
     }
 
     pub(crate) fn select_style(&mut self, select: bool) {
@@ -79,10 +84,14 @@ impl SelectableTextView {
         let path = self.path.clone();
         let page_size = self.page_size;
         let page = self.page;
+        let hide_comments = self.hide_comments;
+        let show_hidden = self.show_hidden;
         Box::new({
             move |siv: &mut Cursive| {
                 if let Some(found_entry) = siv.user_data::<DirectoryEntry>().and_then(|entry| entry.find(&path)) {
-                    if let Some(view) = build_views(found_entry, page_size, page, found_entry.is_root()) {
+                    if let Some(view) =
+                        build_views(found_entry, page_size, page, found_entry.is_root(), hide_comments, show_hidden)
+                    {
                         siv.pop_layer();
                         siv.add_layer(view);
                     }
@@ -110,7 +119,7 @@ impl View for SelectableTextView {
             Event::Mouse { event: MouseEvent::Release(MouseButton::Left), .. } if self.selectable => {
                 EventResult::with_cb(self.get_callback())
             }
-            _ => EventResult::Ignored
+            _ => EventResult::Ignored,
         }
     }
 

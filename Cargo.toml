@@ -3,8 +3,10 @@ name = "folder-size"
 version = "0.1.0"
 edition = "2021"
 description = """Analyses the file tree, from the supplied ROOT_DIRECTORY down, collecting size information for files and \
-folders, and displaying it in a navigable tree, colored and sorted by size. Press [Esc] to exit, navigate with arrow \
-keys and mouse, drill down with either [Enter] or left mouse click, and use [Space] to open a folder in FileExplorer."""
+folders, and displaying it in a navigable tree, colored and sorted by size.
+
+Press [Esc] to exit, →←↑↓ and mouse to navigate, [Enter] or left mouse clilck to open, and [Space] to open selected \
+entry in FileExplorer"""
 
 [dependencies]
 cursive = { version = "0.20", default-features = false, features = ["crossterm-backend"] }

@@ -19,17 +19,23 @@ struct Args {
     root_directory: Option<String>,
     /// How many results to show per page load
     #[arg(short, long, default_value_t = 25)]
-    page_size: u8
+    page_size: u8,
+    /// Hides comments next to directory entries
+    #[arg(short = 'c', long)]
+    hide_comments: bool,
+    /// Show hidden files and folders
+    #[arg(short, long)]
+    show_hidden: bool,
 }
 
 fn main() {
-    let (valid_root_directory, page_size) = get_arguments();
+    let (valid_root_directory, page_size, hide_comments, show_hidden) = get_arguments();
     println!("working on {}...", valid_root_directory.to_str().unwrap());
     let result = read_fs(valid_root_directory, &RealFileOperations);
-    display_result(result, page_size);
+    display_result(result, page_size, hide_comments, show_hidden);
 }
 
-fn get_arguments() -> (PathBuf, u8) {
+fn get_arguments() -> (PathBuf, u8, bool, bool) {
     let args = Args::parse();
     // todo most of this could be in CLAP validator
     let root_directory = args
@@ -46,5 +52,5 @@ fn get_arguments() -> (PathBuf, u8) {
             None
         })
         .unwrap_or_else(|| env::current_dir().expect("error getting `current_dir`"));
-    (root_directory, args.page_size)
+    (root_directory, args.page_size, args.hide_comments, args.show_hidden)
 }

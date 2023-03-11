@@ -16,10 +16,10 @@ mod color;
 mod patterns;
 mod selectable_text_view;
 
-pub(crate) fn display_result(root_entry: DirectoryEntry, page_size: u8) {
+pub(crate) fn display_result(root_entry: DirectoryEntry, page_size: u8, hide_comments: bool, show_hidden: bool) {
     let mut siv = cursive::default();
     siv.set_theme(build_theme());
-    if let Some(view) = build_views(&root_entry, page_size, 0, true) {
+    if let Some(view) = build_views(&root_entry, page_size, 0, true, hide_comments, show_hidden) {
         siv.add_layer(view);
         siv.set_user_data(root_entry);
         siv.add_global_callback(Key::Esc, |siv| siv.quit());
@@ -28,29 +28,41 @@ pub(crate) fn display_result(root_entry: DirectoryEntry, page_size: u8) {
 }
 
 pub(crate) fn build_views(
-    directory_entry: &DirectoryEntry, page_size: u8, page: usize, is_root: bool
+    directory_entry: &DirectoryEntry, page_size: u8, page: usize, is_root: bool, hide_comments: bool, show_hidden: bool,
 ) -> Option<ResizedView<LinearLayout>> {
     if let Some(entries) = directory_entry.entries() {
-        let root_layout = LinearLayout::vertical().child(TextView::new(format!(
-            "{}, size: {}",
-            directory_entry.path().display(),
-            directory_entry.len()
-        )));
+        let root_layout = LinearLayout::vertical()
+            .child(
+                TextView::new(
+                    "Controls: [Esc] to exit, →←↑↓ navigate, [Enter] to open, [Space] to open in FileExplorer",
+                )
+                .style(Effect::Dim),
+            )
+            .child(TextView::new(format!("{}, size: {}", directory_entry.path().display(), directory_entry.len())));
         let mut entries_layout = LinearLayout::vertical();
 
         if !is_root {
-            if let Some(back) = create_back_entry(directory_entry, page_size) {
+            if let Some(back) = create_back_entry(directory_entry, page_size, hide_comments, show_hidden) {
                 entries_layout.add_child(back)
             }
         }
 
-        let enumerate = entries.iter().enumerate();
-        for (count, branch) in enumerate {
+        let mut count = 0;
+        for branch in entries.iter() {
             if count >= page_size as usize * (page + 1) {
-                entries_layout.add_child(create_more_entry(directory_entry.path(), page_size, page));
+                entries_layout.add_child(create_more_entry(
+                    directory_entry.path(),
+                    page_size,
+                    page,
+                    hide_comments,
+                    show_hidden,
+                ));
                 break;
             }
-            entries_layout.add_child(create_view_entry(branch, page_size));
+            if !branch.is_hidden() || show_hidden {
+                entries_layout.add_child(create_view_entry(branch, page_size, hide_comments, show_hidden));
+                count += 1;
+            }
         }
 
         Some(root_layout.child(ScrollView::new(entries_layout)).full_screen())
@@ -59,7 +71,9 @@ pub(crate) fn build_views(
     }
 }
 
-fn create_more_entry(path: &Path, page_size: u8, page: usize) -> SelectableTextView {
+fn create_more_entry(
+    path: &Path, page_size: u8, page: usize, hide_comments: bool, show_hidden: bool,
+) -> SelectableTextView {
     SelectableTextView::new(
         path,
         "⮯ more…".to_string(),
@@ -68,11 +82,15 @@ fn create_more_entry(path: &Path, page_size: u8, page: usize) -> SelectableTextV
         Style::from(Effect::Simple),
         true,
         page_size,
-        page + 1
+        page + 1,
+        hide_comments,
+        show_hidden,
     )
 }
 
-fn create_back_entry(directory_tree: &DirectoryEntry, page_size: u8) -> Option<SelectableTextView> {
+fn create_back_entry(
+    directory_tree: &DirectoryEntry, page_size: u8, hide_comments: bool, show_hidden: bool,
+) -> Option<SelectableTextView> {
     directory_tree.get_parent().map(|path| {
         SelectableTextView::new(
             path,
@@ -82,12 +100,16 @@ fn create_back_entry(directory_tree: &DirectoryEntry, page_size: u8) -> Option<S
             Style::from(Effect::Simple),
             true,
             page_size,
-            0
+            0,
+            hide_comments,
+            show_hidden,
         )
     })
 }
 
-fn create_view_entry(branch: &DirectoryEntry, page_size: u8) -> SelectableTextView {
+fn create_view_entry(
+    branch: &DirectoryEntry, page_size: u8, hide_comments: bool, show_hidden: bool,
+) -> SelectableTextView {
     SelectableTextView::new(
         branch.path(),
         branch.name(),
@@ -96,15 +118,17 @@ fn create_view_entry(branch: &DirectoryEntry, page_size: u8) -> SelectableTextVi
         match branch {
             DirectoryEntry::Folder { .. } => Style::from(Effect::Simple),
             DirectoryEntry::File { .. } => Style::from(Effect::Italic),
-            DirectoryEntry::Rollup { .. } => Style::from(Effect::Italic)
+            DirectoryEntry::Rollup { .. } => Style::from(Effect::Italic),
         },
         match branch {
             DirectoryEntry::File { .. } => false,
             DirectoryEntry::Folder { .. } => branch.has_children(),
-            DirectoryEntry::Rollup { .. } => false // todo this is just "in the meantime"
+            DirectoryEntry::Rollup { .. } => false, // todo this is just "in the meantime"
         },
         page_size,
-        0
+        0,
+        hide_comments,
+        show_hidden,
     )
 }
 
@@ -112,7 +136,7 @@ fn get_comment_for_entry(branch: &DirectoryEntry) -> String {
     let path = match branch {
         DirectoryEntry::File { path, .. } => path.display().to_string(),
         DirectoryEntry::Folder { path, .. } => path.display().to_string(),
-        DirectoryEntry::Rollup { .. } => String::from("")
+        DirectoryEntry::Rollup { .. } => String::from(""),
     };
     let mut comment = String::new();
     for (a_comment, regex_set) in PATTERNS.iter() {
@@ -144,7 +168,7 @@ fn build_theme() -> Theme {
             palette[TitlePrimary] = Blue.light();
             palette[Secondary] = Blue.light();
             palette[Highlight] = Blue.dark();
-        })
+        }),
     }
 }
 
