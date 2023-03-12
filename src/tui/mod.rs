@@ -1,10 +1,10 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use cursive::event::Key;
+use cursive::event::{Event, Key};
 use cursive::theme::{BorderStyle, Color, Effect, Palette, Style, Theme};
 use cursive::view::Resizable;
-use cursive::views::{LinearLayout, ResizedView, ScrollView, TextView};
-use cursive::With;
+use cursive::views::{LinearLayout, OnEventView, ResizedView, ScrollView, TextView};
+use cursive::{Cursive, With};
 
 use color::convert_file_size_to_color;
 use selectable_text_view::SelectableTextView;
@@ -29,14 +29,12 @@ pub(crate) fn display_result(root_entry: DirectoryEntry, page_size: u8, hide_com
 
 pub(crate) fn build_views(
     directory_entry: &DirectoryEntry, page_size: u8, page: usize, is_root: bool, hide_comments: bool, show_hidden: bool,
-) -> Option<ResizedView<LinearLayout>> {
+) -> Option<OnEventView<ResizedView<LinearLayout>>> {
     if let Some(entries) = directory_entry.entries() {
         let root_layout = LinearLayout::vertical()
             .child(
-                TextView::new(
-                    "Controls: [Esc] to exit, →←↑↓ navigate, [Enter] to open, [Space] to open in FileExplorer",
-                )
-                .style(Effect::Dim),
+                TextView::new("navigate: →←↑↓, open: [Enter], open in FileExplorer: [Space], toggle [c]omments, [s]how hidden, exit: [Esc]")
+                    .style(Effect::Dim),
             )
             .child(TextView::new(format!("{}, size: {}", directory_entry.path().display(), directory_entry.len())));
         let mut entries_layout = LinearLayout::vertical();
@@ -64,10 +62,30 @@ pub(crate) fn build_views(
                 count += 1;
             }
         }
+        let path = directory_entry.path().to_path_buf();
+        let path2 = path.clone();
 
-        Some(root_layout.child(ScrollView::new(entries_layout)).full_screen())
+        let view = OnEventView::new(root_layout.child(ScrollView::new(entries_layout)).full_screen());
+        Some(
+            view.on_event(Event::Char('c'), move |siv| {
+                show(page_size, page, !hide_comments, show_hidden, &path, siv);
+            })
+            .on_event(Event::Char('s'), move |siv| {
+                show(page_size, page, hide_comments, !show_hidden, &path2, siv);
+            }),
+        )
     } else {
         None
+    }
+}
+
+fn show(page_size: u8, page: usize, hide_comments: bool, show_hidden: bool, path: &PathBuf, siv: &mut Cursive) {
+    if let Some(found_entry) = siv.user_data::<DirectoryEntry>().and_then(|entry| entry.find(&path)) {
+        if let Some(view) = build_views(found_entry, page_size, page, found_entry.is_root(), hide_comments, show_hidden)
+        {
+            siv.pop_layer();
+            siv.add_layer(view);
+        }
     }
 }
 
