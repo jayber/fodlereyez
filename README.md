@@ -1,4 +1,5 @@
 # FodlerEyez
+(as in toddler :baby:, and :eye:)
 
 ### Welcome to the last text UI, folder and file size utility, for gamers, on Windows, with sarcastic comments, you will ever need (maybe).
 
@@ -10,13 +11,24 @@
 
 - [x] Fodlereyez is a text based UI app, that shows your files and folders sorted by size, and
   coloured depending on their absolute size. So directories containing lots of data, or large
-  files, are red and small files, or directories containing little data, are white/blue. (Because
+  files, are red, and small files, or directories containing little data, are white/blue. (Because
   Windows FileExplorer doesn't show directory size in a column; you have to open each individual
   directory's properties)
 
 - [x] Fodlereyez also has helpful / annoying / cringe comments on your folders and files, as
   shown in the
   image above.
+
+### Instructions
+
+* You invoke Fodlereyez from a command prompt, passing the directory you want to start from as the
+  argument. E.g.
+
+```
+c:\Users\james>fodlereyez.exe c:\
+```
+
+If you don't provide a folder argument it will default to the current folder.
 
 * You can turn off comments, and show hidden files and folders with either command line arguments
   or ui commands as shown in the image below:
@@ -31,12 +43,7 @@
 
 * [Esc] will exit the app.
 
-You invoke Fodlereyez from a command prompt, passing the directory you want to start from as the
-argument. E.g.
 
-```
-c:\Users\james>fodlereyez.exe c:\
-```
 
 Take a look at available options using `--help`
 
