@@ -1,5 +1,5 @@
 # FodlerEyez
-(as in toddler :baby:, and :eye:)
+(as in toddler :baby:, and :eye:s)
 
 ### Welcome to the last text UI, folder and file size utility, for gamers, on Windows, with sarcastic comments, you will ever need (maybe).
 
