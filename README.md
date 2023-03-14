@@ -1,47 +1,48 @@
-# Folder-Size
+# FodlerEyez
 
-This is an exercise in
+### Welcome to the last text UI, folder and file size utility, for gamers, on Windows, with sarcastic comments, you will ever need (maybe).
 
-1. File and folder listing and iterating in Rust
-2. Which became an exercise in mocking external libraries for unit tests in Rust
-3. And then a learning how to handle references and borrowing exercise.
+![](demo1.png)
 
-Using a [cursive](https://github.com/gyscos/cursive) tui frontend for 1.
+1. [ ] Fodlereyez is colourful!
 
-For 2. I took the approach of creating proxy traits for any
+2.[ ] Fodlereyez is helpful!
 
-- External functions
-- Types used by these functions that I could not instantiate
+3.[ ] Fodlereyez is a text based UI app, that shows your files and folders sorted by size, and
+  coloured depending on their absolute size. So directories containing lots of data, or large
+  files, are red and small files, or directories containing little data, are white/blue. (Because
+  Windows FileExplorer doesn't show directory size in a column; you have to open each individual
+  directory's properties)
 
-Thereby decoupling my code from the external libraries (except where I could instantiate and return
-some library types
-in my mocks).
+4.[ ] Fodlereyez also has helpful / annoying / cringe comments on your folders and files, as
+  shown in the
+  image above.
 
-I then used trait objects in my client code that would be either
+You can turn off comments, and show hidden files and folders with either command line arguments
+or ui commands as shown in the image below:
 
-* production types that run external library code (the only code that uses the external libraries),
-  or
-* [mockall](https://github.com/asomers/mockall) mocks during test
+![](demo2.png)
 
-I would be interested in finding out if there are better ways of achieving the same for unit tests
-that are quicker and
-less verbose. It took ***way*** longer to set up the mocks and write the tests than the actual logic
-code. And they take
-up way more lines. This doesn't mean they are bad, but it reinforces the idea that unit testing can
-be an expensive
-hassle.
+You can drill down into subdirectories by left-clicking their name, or by selecting them using
+the arrow keys and pressing [Enter].
 
-BTW *Integration* tests for this particular problem would have made more sense, but don't affect the
-value of the
-exercise
-as it is. But remember:
+Pressing [Space] with an entry highlighted will open that entry in FileExplorer in order to make
+changes, such as deleting unnecessary files or folders.
 
-**_Unit tests are useful; Integration tests tell you if it actually works._**
+[Esc] will exit the app.
 
-The work of 3. is still ongoing. Cursive's user_data allows you to avoid using references
-(cursive owns the data you want to display), which ended up solving all the lifetime problems I
-had. I still think this is hiding important knowledge on how to _actually_ use borrows and
-lifetime annotations correctly.
+You invoke Fodlereyez from a command prompt, passing the directory you want to start from as the
+argument. E.g.
 
-I started another repo [james_vs_borrow_checker](https://github.com/jayber/james_vs_borrow_checker)
-to illustrate the compilation problems I encounter and their solutions (hopefully)
+```
+c:\Users\james>fodlereyez.exe c:\
+```
+
+Take a look at available options using `--help`
+
+```
+c:\Users\james>fodlereyez.exe --help
+```
+
+If you are interested, there is a readme about the dev process and why I made this project
+[here](DEV_README.md)
