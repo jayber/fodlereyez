@@ -5,7 +5,7 @@ edition = "2021"
 description = """Analyses the file tree, from the supplied ROOT_DIRECTORY down, collecting size information for files and \
 folders, and displaying it in a navigable tree, colored and sorted by size.
 
-Press [Esc] to exit, →←↑↓ and mouse to navigate, [Enter] or left mouse clilck to open, and [Space] to open selected \
+Press [Esc] to exit, →←↑↓ and mouse to navigate, [Enter] or left mouse click to open, and [Space] to open selected \
 entry in FileExplorer"""
 
 [dependencies]

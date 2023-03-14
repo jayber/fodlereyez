@@ -1,9 +1,13 @@
 # FodlerEyez
 (as in toddler :baby:, and :eye:s)
 
-### Welcome to the last text UI, folder and file size utility, for gamers, on Windows, with sarcastic comments, you will ever need (maybe).
+### Welcome to the last text UI, folder and file size utility, for gamers, on Windows, with sarcastic comments, you will ever need (probably).
 
-![](demo1.png)
+![Example output from fodlereyez.exe, showing the contents of a c:\ drive, listing each
+entry under the root, alongside an optional comment and the size of the entry. The top
+entry is dark red with smaller directories and files underneath it coloured from orange to
+yellow, green and blue with decreasing size. Entries which cannot be opened are greyed out.
+There are instructions in magenta on the first line.](demo1.png)
 
 - [x] Fodlereyez is colourful!
 
@@ -28,28 +32,31 @@
 c:\Users\james>fodlereyez.exe c:\
 ```
 
-If you don't provide a folder argument it will default to the current folder.
+If you don't provide a folder argument, it will default to the current folder.
 
 * You can turn off comments, and show hidden files and folders with either command line arguments
   or ui commands as shown in the image below:
 
-![](demo2.png)
+![The same listing as image 1 above, but with no comments shown and hidden files and folders
+appearing in the listing.](demo2.png)
 
 * You can drill down into subdirectories by left-clicking their name, or by selecting them using
   the arrow keys and pressing [Enter].
 
-* Pressing [Space] with an entry highlighted will open that entry in FileExplorer in order to make
-  changes, such as deleting unnecessary files or folders.
+* Pressing [Space] with an entry highlighted will open that entry in FileExplorer, so that you can
+  make changes, such as deleting unnecessary files or folders.
 
 * [Esc] will exit the app.
 
-
-
-Take a look at available options using `--help`
+Take a look at available command line options using `--help`
 
 ```
 c:\Users\james>fodlereyez.exe --help
 ```
+
+![A command prompt windows terminal, showing the output from the --help flag on running
+fodlereyes.exe](demo3.png)
+(yes, I know I misspelled click as clilck)
 
 If you are interested, there is a readme about the dev process and why I made this project
 [here](DEV_README.md)
