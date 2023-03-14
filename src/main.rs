@@ -30,7 +30,7 @@ struct Args {
 
 fn main() {
     let (valid_root_directory, page_size, hide_comments, show_hidden) = get_arguments();
-    println!("working on {}...", valid_root_directory.to_str().unwrap());
+    println!("working on {}...", valid_root_directory.display());
     let result = read_fs(valid_root_directory, &RealFileOperations);
     display_result(result, page_size, hide_comments, show_hidden);
 }

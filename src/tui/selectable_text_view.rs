@@ -12,8 +12,8 @@ use cursive::view::{CannotFocus, Nameable, Selector};
 use cursive::views::{DummyView, Layer, LinearLayout, TextView};
 use cursive::{Cursive, Printer, Vec2, View};
 
-use crate::file_analysis::file_types::{Byteable, DirectoryEntry};
-use crate::tui::{build_views, color_for_size};
+use crate::file_analysis::file_types::Byteable;
+use crate::tui::{color_for_size, show};
 
 /* todo this is really at least 2 structs, one for actual fs entries and one for meta entries like more and <other files...>
 eg page and page_size might only be necessary for more; comment and size for fs entries */
@@ -88,14 +88,7 @@ impl SelectableTextView {
         let show_hidden = self.show_hidden;
         Box::new({
             move |siv: &mut Cursive| {
-                if let Some(found_entry) = siv.user_data::<DirectoryEntry>().and_then(|entry| entry.find(&path)) {
-                    if let Some(view) =
-                        build_views(found_entry, page_size, page, found_entry.is_root(), hide_comments, show_hidden)
-                    {
-                        siv.pop_layer();
-                        siv.add_layer(view);
-                    }
-                }
+                show(page_size, page, hide_comments, show_hidden, &path, siv);
             }
         })
     }
@@ -132,3 +125,5 @@ impl View for SelectableTextView {
         }
     }
 }
+
+// todo: unit tests?

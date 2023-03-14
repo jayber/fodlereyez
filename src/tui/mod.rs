@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use cursive::event::{Event, Key};
-use cursive::theme::{BorderStyle, Color, Effect, Palette, Style, Theme};
+use cursive::theme::BaseColor::Magenta;
+use cursive::theme::{BorderStyle, Color, ColorStyle, Effect, Palette, Style, Theme};
 use cursive::view::Resizable;
 use cursive::views::{LinearLayout, OnEventView, ResizedView, ScrollView, TextView};
 use cursive::{Cursive, With};
@@ -29,64 +30,85 @@ pub(crate) fn display_result(root_entry: DirectoryEntry, page_size: u8, hide_com
 
 pub(crate) fn build_views(
     directory_entry: &DirectoryEntry, page_size: u8, page: usize, is_root: bool, hide_comments: bool, show_hidden: bool,
-) -> Option<OnEventView<ResizedView<LinearLayout>>> {
-    if let Some(entries) = directory_entry.entries() {
-        let root_layout = LinearLayout::vertical()
-            .child(
-                TextView::new("navigate: →←↑↓, open: [Enter], open in FileExplorer: [Space], toggle [c]omments, [s]how hidden, exit: [Esc]")
-                    .style(Effect::Dim),
-            )
-            .child(TextView::new(format!("{}, size: {}", directory_entry.path().display(), directory_entry.len())));
-        let mut entries_layout = LinearLayout::vertical();
+) -> Option<ResizedView<LinearLayout>> {
+    directory_entry.entries().map(|entries| {
+        let root_layout = create_root_layout(directory_entry);
 
-        if !is_root {
-            if let Some(back) = create_back_entry(directory_entry, page_size, hide_comments, show_hidden) {
-                entries_layout.add_child(back)
-            }
-        }
+        let entries_layout =
+            create_entries_layout(directory_entry, page_size, page, is_root, hide_comments, show_hidden, entries);
 
-        let mut count = 0;
-        for branch in entries.iter() {
-            if count >= page_size as usize * (page + 1) {
-                entries_layout.add_child(create_more_entry(
-                    directory_entry.path(),
-                    page_size,
-                    page,
-                    hide_comments,
-                    show_hidden,
-                ));
-                break;
-            }
-            if !branch.is_hidden() || show_hidden {
-                entries_layout.add_child(create_view_entry(branch, page_size, hide_comments, show_hidden));
-                count += 1;
-            }
-        }
-        let path = directory_entry.path().to_path_buf();
-        let path2 = path.clone();
+        let event_view =
+            register_event_listeners(directory_entry, page_size, page, hide_comments, show_hidden, entries_layout);
 
-        let view = OnEventView::new(root_layout.child(ScrollView::new(entries_layout)).full_screen());
-        Some(
-            view.on_event(Event::Char('c'), move |siv| {
-                show(page_size, page, !hide_comments, show_hidden, &path, siv);
-            })
-            .on_event(Event::Char('s'), move |siv| {
-                show(page_size, page, hide_comments, !show_hidden, &path2, siv);
-            }),
-        )
-    } else {
-        None
-    }
+        root_layout.child(event_view).full_screen()
+    })
+}
+
+fn register_event_listeners(
+    directory_entry: &DirectoryEntry, page_size: u8, page: usize, hide_comments: bool, show_hidden: bool,
+    entries_layout: LinearLayout,
+) -> OnEventView<ScrollView<LinearLayout>> {
+    let view = OnEventView::new(ScrollView::new(entries_layout));
+
+    let path = directory_entry.path().to_path_buf();
+    let path2 = path.clone();
+
+    view.on_event(Event::Char('c'), move |siv| {
+        show(page_size, page, !hide_comments, show_hidden, &path, siv);
+    })
+    .on_event(Event::Char('s'), move |siv| {
+        show(page_size, page, hide_comments, !show_hidden, &path2, siv);
+    })
 }
 
 fn show(page_size: u8, page: usize, hide_comments: bool, show_hidden: bool, path: &PathBuf, siv: &mut Cursive) {
-    if let Some(found_entry) = siv.user_data::<DirectoryEntry>().and_then(|entry| entry.find(&path)) {
+    if let Some(found_entry) = siv.user_data::<DirectoryEntry>().and_then(|entry| entry.find(path)) {
         if let Some(view) = build_views(found_entry, page_size, page, found_entry.is_root(), hide_comments, show_hidden)
         {
             siv.pop_layer();
             siv.add_layer(view);
         }
     }
+}
+
+fn create_entries_layout(
+    directory_entry: &DirectoryEntry, page_size: u8, page: usize, is_root: bool, hide_comments: bool,
+    show_hidden: bool, entries: &Vec<DirectoryEntry>,
+) -> LinearLayout {
+    let mut entries_layout = LinearLayout::vertical();
+    if !is_root {
+        if let Some(back) = create_back_entry(directory_entry, page_size, hide_comments, show_hidden) {
+            entries_layout.add_child(back)
+        }
+    }
+
+    let mut count = 0;
+    for branch in entries.iter() {
+        if count >= page_size as usize * (page + 1) {
+            entries_layout.add_child(create_more_entry(
+                directory_entry.path(),
+                page_size,
+                page,
+                hide_comments,
+                show_hidden,
+            ));
+            break;
+        }
+        if !branch.is_hidden() || show_hidden {
+            entries_layout.add_child(create_view_entry(branch, page_size, hide_comments, show_hidden));
+            count += 1;
+        }
+    }
+    entries_layout
+}
+
+fn create_root_layout(directory_entry: &DirectoryEntry) -> LinearLayout {
+    LinearLayout::vertical()
+        .child(
+            TextView::new("navigate: [→←↑↓], open: [Enter], open in FileExplorer: [Space], toggle [c]omments, [s]how hidden, exit: [Esc]")
+                .style(Style::from(ColorStyle::front(Magenta))),
+        )
+        .child(TextView::new(format!("{}, size: {}", directory_entry.path().display(), directory_entry.len())))
 }
 
 fn create_more_entry(

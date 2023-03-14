@@ -1,5 +1,5 @@
 [package]
-name = "folder-size"
+name = "fodlereyez"
 version = "0.1.0"
 edition = "2021"
 description = """Analyses the file tree, from the supplied ROOT_DIRECTORY down, collecting size information for files and \

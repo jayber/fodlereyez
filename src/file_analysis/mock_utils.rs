@@ -17,26 +17,24 @@ mock! {
 }
 
 pub(crate) fn set_expect(
-    num_directories: usize, num_files: usize
+    num_directories: usize, num_files: usize,
 ) -> Result<(PathBuf, MockFileSystemProxy), Box<dyn Error>> {
     let mut mock_file_operations = MockFileSystemProxy::new();
     let dir = PathBuf::from("current");
     let mut seq_read_dir = Sequence::new();
     expect_read_dir(num_directories, num_files, &mut mock_file_operations, dir.clone(), &mut seq_read_dir);
-    if num_files > 0 {
-        mock_file_operations.expect_metadata().times(num_files).returning(|_| {
-            let mut metadata = MockMetadataProxy::new();
-            metadata.expect_len().return_const(1024 * 1024_u64);
-            Ok(Box::new(metadata))
-        });
-    }
-
+    mock_file_operations.expect_metadata().times(num_files + num_directories + 1).returning(|_| {
+        let mut metadata = MockMetadataProxy::new();
+        metadata.expect_len().return_const(1024 * 1024_u64);
+        metadata.expect_file_attributes().return_const(0_u32);
+        Ok(Box::new(metadata))
+    });
     Ok((dir, mock_file_operations))
 }
 
 fn expect_read_dir(
     num_directories: usize, num_files: usize, mock_file_operations: &mut MockFileSystemProxy, buf: PathBuf,
-    seq_read_dir: &mut Sequence
+    seq_read_dir: &mut Sequence,
 ) {
     mock_file_operations.expect_read_dir().times(1).in_sequence(seq_read_dir).returning(move |_dir| {
         let mut mock_read_dir = MockMyReadDirProxy::new();
