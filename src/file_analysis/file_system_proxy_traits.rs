@@ -31,5 +31,7 @@ pub(crate) trait FileTypeProxy {
 #[cfg_attr(test, automock)]
 pub(crate) trait MetadataProxy {
     fn len(&self) -> u64;
+
+    #[cfg(target_os = "windows")]
     fn file_attributes(&self) -> u32;
 }

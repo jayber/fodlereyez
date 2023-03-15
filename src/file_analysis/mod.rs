@@ -38,7 +38,11 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, i
     }
 }
 
+#[cfg(target_os = "windows")]
 fn is_hidden(metadata: Box<dyn MetadataProxy>) -> bool { (metadata.file_attributes() & 0b_10) == 0b_10 }
+
+#[cfg(not(target_os = "windows"))]
+fn is_hidden(metadata: Box<dyn MetadataProxy>) -> bool { false }
 
 #[cfg(test)]
 mod mock_utils;

@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::fs::{DirEntry, FileType, Metadata, ReadDir};
+#[cfg(target_os = "windows")]
 use std::os::windows::fs::MetadataExt;
 use std::path::PathBuf;
 use std::{fs, mem};
@@ -100,6 +101,7 @@ struct RealMetadataProxy {
 impl MetadataProxy for RealMetadataProxy {
     fn len(&self) -> u64 { self.metadata.len() }
 
+    #[cfg(target_os = "windows")]
     fn file_attributes(&self) -> u32 { self.metadata.file_attributes() }
 }
 
