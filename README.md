@@ -1,7 +1,7 @@
 # FodlerEyez
 (as in toddler :baby:, and :eye:s) [download](https://github.com/jayber/fodlereyez/releases/latest)
 
-### Welcome to the last text UI, folder and file size utility, for gamers, on Windows, with sarcastic comments, you will ever need (probably).
+### Welcome to the last text UI, folder and file size utility, for gamers, on Windows (and now Linux!), with sarcastic comments, you will ever need (probably).
 
 ![Example output from fodlereyez.exe, showing the contents of a c:\ drive, listing each
 entry under the root, alongside an optional comment and the size of the entry. The top
