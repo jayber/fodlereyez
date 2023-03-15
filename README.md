@@ -24,7 +24,7 @@ There are instructions in magenta on the first line.](demo1.png)
   image above.
 
 ### Instructions
-Get it [here](/jayber/fodlereyez/releases/latest)
+Get it [here](github.com/jayber/fodlereyez/releases/latest)
 
 * You invoke Fodlereyez from a command prompt, passing the directory you want to start from as the
   argument. E.g.
