@@ -1,7 +1,13 @@
 use lazy_static::lazy_static;
 use regex::{Error, RegexSet};
 
-fn fix_separators(path: &str) -> String { path.replace(r"\\", std::path::MAIN_SEPARATOR.to_string().as_str()) }
+fn fix_separators(path: &str) -> String {
+    #[cfg(not(target_os = "windows"))]
+    return path.replace(r"\\", std::path::MAIN_SEPARATOR.to_string().as_str());
+
+    #[cfg(target_os = "windows")]
+    return path.to_string();
+}
 
 lazy_static! {
     pub(crate) static ref PATTERNS: Vec<(&'static str, Result<RegexSet, Error>)> = vec![
