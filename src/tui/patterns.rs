@@ -106,8 +106,8 @@ lazy_static! {
         ("System folder used if needed to roll back updates. Will be empty if system is healthy.", RegexSet::new([fix_separators(r"\\\$WinREAgent$")])),
 
         //LINUX
-        ("Contains virtual files in linux, which will have misleading sizes.", RegexSet::new([r"/proc$"])),
-        ("Devices, represented by files, such as hard drives and software devices.", RegexSet::new([r"/dev$"])),
-        ("System-wide configuration files.", RegexSet::new([r"/etc$"])),
+        ("Contains virtual files in linux, which will have misleading sizes.", RegexSet::new([r"^\/proc$"])),
+        ("Devices, represented by files, such as hard drives and software devices.", RegexSet::new([r"^\/dev$"])),
+        ("System-wide configuration files.", RegexSet::new([r"^\/etc$"])),
     ];
 }
