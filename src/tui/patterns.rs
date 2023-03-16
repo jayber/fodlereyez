@@ -105,6 +105,6 @@ lazy_static! {
         ("Used to diagnose problems with system reset or refresh.", RegexSet::new([fix_separators(r"\\\$SysReset$")])),
         ("System folder used if needed to roll back updates. Will be empty if system is healthy.", RegexSet::new([fix_separators(r"\\\$WinREAgent$")])),
 
-        ("Contains virtual files in linux, which will have misleading sizes.", RegexSet::new([r"^/proc/$"])),
+        ("Contains virtual files in linux, which will have misleading sizes.", RegexSet::new([r"/proc$"])),
     ];
 }

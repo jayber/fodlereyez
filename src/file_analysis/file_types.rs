@@ -153,7 +153,7 @@ impl DirectoryEntry {
             DirectoryEntry::File { len, .. } => len.to_string(),
             DirectoryEntry::Folder { len, .. } => len.to_string(),
             DirectoryEntry::Rollup { len, .. } => len.to_string(),
-            DirectoryEntry::Link { .. } => "--link--".to_string(),
+            DirectoryEntry::Link { .. } => "-link-".to_string(),
         }
     }
     pub fn name(&self) -> String {
