@@ -27,7 +27,7 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, i
             } else if let Ok(metadata) = file_operations.metadata(&entry_path) {
                 len += metadata.len();
                 let len = Byteable(metadata.len());
-                let hidden = (metadata.file_attributes() & 0b_10) == 0b_10;
+                let hidden = is_hidden(file_operations, &current_dir);
                 entries.push(DirectoryEntry::new_file(len, entry_path, hidden));
             }
         }
