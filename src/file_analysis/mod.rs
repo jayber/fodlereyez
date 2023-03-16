@@ -19,15 +19,18 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, i
         for entry in directory_entries {
             let entry = entry.expect("error in getting entry");
             let entry_path = entry.path();
-            if entry.file_type().expect("error getting file type").is_dir() {
-                let child = populate_tree(file_operations, entry_path, false);
-                len += child.len().0;
-                entries.push(child);
-            } else if let Ok(metadata) = file_operations.metadata(&entry_path) {
-                len += metadata.len();
-                let len = Byteable(metadata.len());
-                let hidden = is_hidden(file_operations, &entry_path);
-                entries.push(DirectoryEntry::new_file(len, entry_path, hidden));
+            let file_type = entry.file_type().expect("error getting file type");
+            if !file_type.is_symlink() {
+                if file_type.is_dir() {
+                    let child = populate_tree(file_operations, entry_path, false);
+                    len += child.len().0;
+                    entries.push(child);
+                } else if let Ok(metadata) = file_operations.metadata(&entry_path) {
+                    len += metadata.len();
+                    let len = Byteable(metadata.len());
+                    let hidden = is_hidden(file_operations, &entry_path);
+                    entries.push(DirectoryEntry::new_file(len, entry_path, hidden));
+                }
             }
         }
         let hidden = is_hidden(file_operations, &current_dir);

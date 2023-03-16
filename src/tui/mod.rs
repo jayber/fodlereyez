@@ -3,8 +3,7 @@ use std::path::{Path, PathBuf};
 use cursive::event::{Event, Key};
 use cursive::theme::BaseColor::Magenta;
 use cursive::theme::{BorderStyle, Color, ColorStyle, Effect, Palette, Style, Theme};
-use cursive::view::Resizable;
-use cursive::views::{LinearLayout, OnEventView, ResizedView, ScrollView, TextView};
+use cursive::views::{LinearLayout, OnEventView, ScrollView, TextView};
 use cursive::{Cursive, With};
 
 use color::convert_file_size_to_color;
@@ -30,7 +29,7 @@ pub(crate) fn display_result(root_entry: DirectoryEntry, page_size: u8, hide_com
 
 pub(crate) fn build_views(
     directory_entry: &DirectoryEntry, page_size: u8, page: usize, is_root: bool, hide_comments: bool, show_hidden: bool,
-) -> Option<ResizedView<LinearLayout>> {
+) -> Option<LinearLayout> {
     directory_entry.entries().map(|entries| {
         let root_layout = create_root_layout(directory_entry);
 
@@ -40,7 +39,7 @@ pub(crate) fn build_views(
         let event_view =
             register_event_listeners(directory_entry, page_size, page, hide_comments, show_hidden, entries_layout);
 
-        root_layout.child(event_view).full_screen()
+        root_layout.child(event_view)
     })
 }
 

@@ -105,17 +105,20 @@ impl View for SelectableTextView {
                 EventResult::Consumed(None)
             }
             Event::Key(Key::Enter) if self.selectable => EventResult::with_cb(self.get_callback()),
-        Event::Char(' ') if self.selectable => {
-                #[cfg(target_os = "windows")] {
-                let mut command = Command::new("explorer");
-                let command = command.arg(self.path.clone().display());
-                command.output().expect("Error opening in terminal/explorer");
+            Event::Char(' ') if self.selectable => {
+                #[cfg(target_os = "windows")]
+                {
+                    let mut command = Command::new("explorer");
+                    let command = command.arg(self.path.clone());
+                    command.output().expect("Error opening in terminal/explorer");
                 }
 
-                #[cfg(not(target_os = "windows"))] {
-                let mut command = Command::new("gnome-terminal");
-                let command = command.arg("--window").arg(format!("--working-directory={}",self.path.clone().display()));
-                command.output().expect("Error opening in terminal/explorer");
+                #[cfg(not(target_os = "windows"))]
+                {
+                    let mut command = Command::new("gnome-terminal");
+                    let command =
+                        command.arg("--window").arg(format!("--working-directory={}", self.path.clone().display()));
+                    command.output().expect("Error opening in terminal/explorer");
                 }
 
                 EventResult::Consumed(None)

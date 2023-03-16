@@ -62,6 +62,7 @@ fn expect_read_dir_next(is_dir: bool, mock_read_dir: &mut MockMyReadDirProxy, se
         entry.expect_file_type().returning(move || {
             let mut file_type = MockFileTypeProxy::new();
             file_type.expect_is_dir().times(1).return_const(is_dir);
+            file_type.expect_is_symlink().times(1).return_const(false);
             Ok(Box::new(file_type))
         });
         Some(Ok(Box::new(entry)))

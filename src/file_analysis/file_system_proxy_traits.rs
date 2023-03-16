@@ -26,6 +26,7 @@ pub(crate) trait DirPathEntryProxy {
 #[cfg_attr(test, automock)]
 pub(crate) trait FileTypeProxy {
     fn is_dir(&self) -> bool;
+    fn is_symlink(&self) -> bool;
 }
 
 #[cfg_attr(test, automock)]

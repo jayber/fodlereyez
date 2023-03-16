@@ -92,6 +92,7 @@ struct RealFileTypeProxy {
 
 impl FileTypeProxy for RealFileTypeProxy {
     fn is_dir(&self) -> bool { self.file_type.is_dir() }
+    fn is_symlink(&self) -> bool { self.file_type.is_symlink() }
 }
 
 struct RealMetadataProxy {
