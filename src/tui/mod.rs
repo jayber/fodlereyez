@@ -21,7 +21,7 @@ pub(crate) fn display_result(root_entry: DirectoryEntry, page_size: u8, hide_com
     let mut siv = cursive::default();
     siv.set_theme(build_theme());
     if let Some(view) = build_views(&root_entry, page_size, 0, true, hide_comments, show_hidden) {
-        siv.add_layer(view);
+        siv.add_fullscreen_layer(view);
         siv.set_user_data(root_entry);
         siv.add_global_callback(Key::Esc, |siv| siv.quit());
         siv.run();
@@ -66,7 +66,7 @@ fn show(page_size: u8, page: usize, hide_comments: bool, show_hidden: bool, path
         if let Some(view) = build_views(found_entry, page_size, page, found_entry.is_root(), hide_comments, show_hidden)
         {
             siv.pop_layer();
-            siv.add_layer(view);
+            siv.add_fullscreen_layer(view);
         }
     }
 }
