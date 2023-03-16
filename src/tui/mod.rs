@@ -107,7 +107,7 @@ fn create_root_layout(directory_entry: &DirectoryEntry) -> LinearLayout {
             TextView::new("navigate: [→←↑↓], open: [Enter], open in terminal/FileExplorer: [Space], toggle [c]omments, [s]how hidden, exit: [Esc]")
                 .style(Style::from(ColorStyle::front(Magenta))),
         )
-        .child(TextView::new(format!("{}, size: {}", directory_entry.path().display(), directory_entry.len())))
+        .child(TextView::new(format!("{}, size: {}", directory_entry.path().display(), directory_entry.len().map(|val| val.0).unwrap_or(0))))
 }
 
 fn create_more_entry(
@@ -153,14 +153,16 @@ fn create_view_entry(
         branch.path(),
         branch.name(),
         get_comment_for_entry(branch),
-        Some(branch.len()),
+        branch.len(),
         match branch {
             DirectoryEntry::Folder { .. } => Style::from(Effect::Simple),
+            DirectoryEntry::Link { .. } => Style::from(Effect::Simple),
             DirectoryEntry::File { .. } => Style::from(Effect::Italic),
             DirectoryEntry::Rollup { .. } => Style::from(Effect::Italic),
         },
         match branch {
             DirectoryEntry::File { .. } => false,
+            DirectoryEntry::Link { .. } => false,
             DirectoryEntry::Folder { .. } => branch.has_children(),
             DirectoryEntry::Rollup { .. } => false, // todo this is just "in the meantime"
         },
@@ -174,6 +176,7 @@ fn create_view_entry(
 fn get_comment_for_entry(branch: &DirectoryEntry) -> String {
     let path = match branch {
         DirectoryEntry::File { path, .. } => path.display().to_string(),
+        DirectoryEntry::Link { path, .. } => path.display().to_string(),
         DirectoryEntry::Folder { path, .. } => path.display().to_string(),
         DirectoryEntry::Rollup { .. } => String::from(""),
     };

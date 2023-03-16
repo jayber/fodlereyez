@@ -20,17 +20,18 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, i
             let entry = entry.expect("error in getting entry");
             let entry_path = entry.path();
             let file_type = entry.file_type().expect("error getting file type");
-            if !file_type.is_symlink() {
-                if file_type.is_dir() {
-                    let child = populate_tree(file_operations, entry_path, false);
-                    len += child.len().0;
-                    entries.push(child);
-                } else if let Ok(metadata) = file_operations.metadata(&entry_path) {
-                    len += metadata.len();
-                    let len = Byteable(metadata.len());
-                    let hidden = is_hidden(file_operations, &entry_path);
-                    entries.push(DirectoryEntry::new_file(len, entry_path, hidden));
-                }
+            if file_type.is_symlink() {
+                let hidden = is_hidden(file_operations, &entry_path);
+                entries.push(DirectoryEntry::new_link(entry_path, false, hidden));
+            } else if file_type.is_dir() {
+                let child = populate_tree(file_operations, entry_path, false);
+                len += child.len().map(|val| val.0).unwrap_or(0);
+                entries.push(child);
+            } else if let Ok(metadata) = file_operations.metadata(&entry_path) {
+                len += metadata.len();
+                let len = Byteable(metadata.len());
+                let hidden = is_hidden(file_operations, &entry_path);
+                entries.push(DirectoryEntry::new_file(len, entry_path, hidden));
             }
         }
         let hidden = is_hidden(file_operations, &current_dir);
@@ -61,14 +62,14 @@ mod tests {
     fn test_run_with_1_file() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(0, 1)?;
         let entry = read_fs(dir, &mock_file_operations);
-        assert_eq!(entry.len().0, 1024 * 1024_u64);
+        assert_eq!(entry.len().expect("a len").0, 1024 * 1024_u64);
         if let Some(entries) = entry.entries() {
             let mut iter = entries.iter();
             let file = iter.next();
             assert_eq!(file.is_some(), true);
             let file = file.unwrap();
             assert_eq!(file.is_dir(), false);
-            assert_eq!(file.len().0, 1024 * 1024_u64);
+            assert_eq!(file.len().expect("a len").0, 1024 * 1024_u64);
             assert_eq!(iter.next().is_none(), true);
             Ok(())
         } else {
@@ -80,7 +81,7 @@ mod tests {
     fn test_run_with_1_directory() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(1, 0)?;
         let entry = read_fs(dir, &mock_file_operations);
-        assert_eq!(entry.len().0, 0_u64);
+        assert_eq!(entry.len().expect("a len").0, 0_u64);
         if let Some(entries) = entry.entries() {
             let mut iter = entries.iter();
             let child = iter.next();
@@ -88,7 +89,7 @@ mod tests {
             let child = child.unwrap();
             assert_eq!(child.is_dir(), true);
             assert_eq!(child.name(), "test\\");
-            assert_eq!(child.len().0, 0_u64);
+            assert_eq!(child.len().expect("a len").0, 0_u64);
             assert_eq!(iter.next().is_none(), true);
             Ok(())
         } else {
@@ -100,7 +101,7 @@ mod tests {
     fn test_run_with_2_directory() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(2, 0)?;
         let entry = read_fs(dir, &mock_file_operations);
-        assert_eq!(entry.len().0, 0_u64);
+        assert_eq!(entry.len().expect("a len").0, 0_u64);
         if let Some(entries) = entry.entries() {
             let mut iter = entries.iter();
             let child = iter.next();
@@ -126,7 +127,7 @@ mod tests {
     fn test_run_with_1_directory_and_1_file() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(1, 1)?;
         let entry = read_fs(dir, &mock_file_operations);
-        assert_eq!(entry.len().0, 1024 * 1024_u64);
+        assert_eq!(entry.len().expect("a len").0, 1024 * 1024_u64);
         if let Some(entries) = entry.entries() {
             let mut iter = entries.iter();
 
@@ -134,14 +135,14 @@ mod tests {
             assert_eq!(file.is_some(), true);
             let entry = file.unwrap();
             assert_eq!(entry.is_dir(), false);
-            assert_eq!(entry.len().0, 1024 * 1024_u64);
+            assert_eq!(entry.len().expect("a len").0, 1024 * 1024_u64);
 
             let rollup = iter.next();
             assert_eq!(rollup.is_some(), true);
             let child = rollup.unwrap();
             assert_eq!(child.name(), "test\\");
             assert_eq!(child.is_dir(), true);
-            assert_eq!(child.len().0, 0_u64);
+            assert_eq!(child.len().expect("a len").0, 0_u64);
             Ok(())
         } else {
             panic!("None should be some")
@@ -152,32 +153,32 @@ mod tests {
     fn test_run_with_2_directory_and_2_file() -> Result<(), Box<dyn Error>> {
         let (dir, mock_file_operations) = mock_utils::set_expect(2, 2)?;
         let entry = read_fs(dir, &mock_file_operations);
-        assert_eq!(entry.len().0, 1024 * 1024_u64 * 2_u64);
+        assert_eq!(entry.len().expect("a len").0, 1024 * 1024_u64 * 2_u64);
         if let Some(entries) = entry.entries() {
             let mut iter = entries.iter();
             let file = iter.next();
             assert_eq!(file.is_some(), true);
             let entry = file.unwrap();
             assert_eq!(entry.is_dir(), false);
-            assert_eq!(entry.len().0, 1024 * 1024_u64);
+            assert_eq!(entry.len().expect("a len").0, 1024 * 1024_u64);
             let file = iter.next();
             assert_eq!(file.is_some(), true);
             let entry = file.unwrap();
             assert_eq!(entry.is_dir(), false);
-            assert_eq!(entry.len().0, 1024 * 1024_u64);
+            assert_eq!(entry.len().expect("a len").0, 1024 * 1024_u64);
 
             let child = iter.next();
             assert_eq!(child.is_some(), true);
             let child = child.unwrap();
             assert_eq!(child.is_dir(), true);
-            assert_eq!(child.len().0, 0_u64);
+            assert_eq!(child.len().expect("a len").0, 0_u64);
             assert_eq!(child.name(), "test\\");
 
             let child = iter.next();
             assert_eq!(child.is_some(), true);
             let child = child.unwrap();
             assert_eq!(child.is_dir(), true);
-            assert_eq!(child.len().0, 0_u64);
+            assert_eq!(child.len().expect("a len").0, 0_u64);
             assert_eq!(child.name(), "test\\");
 
             let child = iter.next();

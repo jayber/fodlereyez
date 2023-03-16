@@ -7,23 +7,14 @@ pub(crate) const ROLLUP_NAME: &str = "<other files...>";
 pub(crate) enum DirectoryEntry {
     File { len: Byteable, path: PathBuf, is_hidden: bool },
     Folder { path: PathBuf, len: Byteable, entries: Vec<DirectoryEntry>, is_root: bool, is_hidden: bool },
+    Link { path: PathBuf, is_root: bool, is_hidden: bool },
     Rollup { path: PathBuf, len: Byteable, entries: Vec<DirectoryEntry> },
-}
-
-impl DirectoryEntry {
-    pub(crate) fn is_hidden(&self) -> bool {
-        match self {
-            DirectoryEntry::File { is_hidden, .. } => *is_hidden,
-            DirectoryEntry::Folder { is_hidden, .. } => *is_hidden,
-            DirectoryEntry::Rollup { .. } => false,
-        }
-    }
 }
 
 //statics
 impl DirectoryEntry {
     fn new_rollup(entries: Vec<DirectoryEntry>, path: PathBuf) -> DirectoryEntry {
-        let len_sum = entries.iter().fold(0_u64, |a, b| b.len().0 + a);
+        let len_sum = entries.iter().fold(0_u64, |a, b| b.len().map(|val| val.0).unwrap_or(0) + a);
         DirectoryEntry::Rollup { path, len: Byteable(len_sum), entries }
     }
     pub(crate) fn new_file(len: Byteable, path: PathBuf, is_hidden: bool) -> DirectoryEntry {
@@ -36,13 +27,25 @@ impl DirectoryEntry {
         entry.rollup();
         entry
     }
+    pub(crate) fn new_link(path: PathBuf, is_root: bool, is_hidden: bool) -> DirectoryEntry {
+        DirectoryEntry::Link { path, is_root, is_hidden }
+    }
 }
 
 impl DirectoryEntry {
+    pub(crate) fn is_hidden(&self) -> bool {
+        match self {
+            DirectoryEntry::File { is_hidden, .. } => *is_hidden,
+            DirectoryEntry::Link { is_hidden, .. } => *is_hidden,
+            DirectoryEntry::Folder { is_hidden, .. } => *is_hidden,
+            DirectoryEntry::Rollup { .. } => false,
+        }
+    }
     pub(crate) fn is_root(&self) -> bool {
         match self {
             DirectoryEntry::File { .. } => false,
             DirectoryEntry::Folder { is_root, .. } => *is_root,
+            DirectoryEntry::Link { is_root, .. } => *is_root,
             DirectoryEntry::Rollup { .. } => false,
         }
     }
@@ -50,12 +53,14 @@ impl DirectoryEntry {
         match self {
             DirectoryEntry::File { path, .. } => path.as_path(),
             DirectoryEntry::Folder { path, .. } => path.as_path(),
+            DirectoryEntry::Link { path, .. } => path.as_path(),
             DirectoryEntry::Rollup { path, .. } => path.as_path(),
         }
     }
     pub(crate) fn entries(&self) -> Option<&Vec<DirectoryEntry>> {
         match self {
             DirectoryEntry::File { .. } => None,
+            DirectoryEntry::Link { .. } => None,
             DirectoryEntry::Folder { entries, .. } => Some(entries),
             DirectoryEntry::Rollup { entries, .. } => Some(entries),
         }
@@ -63,10 +68,11 @@ impl DirectoryEntry {
     fn rollup(&mut self) {
         match self {
             DirectoryEntry::File { .. } => {}
+            DirectoryEntry::Link { .. } => {}
             DirectoryEntry::Rollup { .. } => {}
             DirectoryEntry::Folder { entries, path, .. } => {
                 let mut old_entries = mem::take(entries);
-                old_entries.sort_unstable_by_key(|a| a.len().0);
+                old_entries.sort_unstable_by_key(|a| a.len().map(|val| val.0).unwrap_or(0));
 
                 let mut still_rolling_up = true;
                 let mut files = vec![];
@@ -82,7 +88,7 @@ impl DirectoryEntry {
                 if !files.is_empty() {
                     entries.push(DirectoryEntry::new_rollup(files, path.clone()));
                 }
-                entries.sort_unstable_by_key(|a| u64::MAX - a.len().0);
+                entries.sort_unstable_by_key(|a| u64::MAX - a.len().map(|val| val.0).unwrap_or(0));
             }
         }
     }
@@ -103,6 +109,7 @@ impl DirectoryEntry {
         } else {
             match self {
                 DirectoryEntry::File { .. } => None,
+                DirectoryEntry::Link { .. } => None,
                 DirectoryEntry::Folder { entries, .. } => find_entry(entries, match_path),
                 DirectoryEntry::Rollup { entries, .. } => find_entry(entries, match_path),
             }
@@ -114,11 +121,13 @@ impl DirectoryEntry {
             DirectoryEntry::File { path, .. } => path.parent(),
             DirectoryEntry::Folder { path, .. } => path.parent(),
             DirectoryEntry::Rollup { path, .. } => path.parent(),
+            DirectoryEntry::Link { path, .. } => path.parent(),
         }
     }
     pub fn has_children(&self) -> bool {
         match self {
             DirectoryEntry::File { .. } => false,
+            DirectoryEntry::Link { .. } => false,
             DirectoryEntry::Folder { entries, .. } => !entries.is_empty(),
             DirectoryEntry::Rollup { .. } => true,
         }
@@ -126,15 +135,17 @@ impl DirectoryEntry {
     pub fn is_dir(&self) -> bool {
         match self {
             DirectoryEntry::File { .. } => false,
+            DirectoryEntry::Link { .. } => false,
             DirectoryEntry::Folder { .. } => true,
             DirectoryEntry::Rollup { .. } => false,
         }
     }
-    pub fn len(&self) -> &Byteable {
+    pub fn len(&self) -> Option<&Byteable> {
         match self {
-            DirectoryEntry::File { len, .. } => len,
-            DirectoryEntry::Folder { len, .. } => len,
-            DirectoryEntry::Rollup { len, .. } => len,
+            DirectoryEntry::File { len, .. } => Some(len),
+            DirectoryEntry::Folder { len, .. } => Some(len),
+            DirectoryEntry::Rollup { len, .. } => Some(len),
+            DirectoryEntry::Link { .. } => None,
         }
     }
     pub fn name(&self) -> String {
@@ -143,6 +154,7 @@ impl DirectoryEntry {
         }
         match self {
             DirectoryEntry::File { path, .. } => get_file_name(path),
+            DirectoryEntry::Link { path, .. } => get_file_name(path),
             DirectoryEntry::Folder { path, .. } => {
                 let mut name = get_file_name(path);
                 name.push(std::path::MAIN_SEPARATOR);
@@ -261,6 +273,7 @@ mod tests {
                 match result.first().expect("first entry exists") {
                     DirectoryEntry::File { .. } => panic!("file found when expecting rollup"),
                     DirectoryEntry::Folder { .. } => panic!("folder found when expecting rollup"),
+                    DirectoryEntry::Link { .. } => panic!("link found when expecting rollup"),
                     DirectoryEntry::Rollup { len, entries, .. } => {
                         assert_eq!(11, len.0);
                         assert_eq!(5, entries.len());
@@ -297,7 +310,10 @@ mod tests {
                     false,
                 ));
                 let entry = DirectoryEntry::new_folder(Byteable(0), PathBuf::from("this"), false, entries, true);
-                assert_eq!(10, entry.find(&PathBuf::from("this\\this")).expect("to find other").len().0);
+                assert_eq!(
+                    10,
+                    entry.find(&PathBuf::from("this\\this")).expect("to find other").len().expect("a length").0
+                );
             }
 
             #[test]
