@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use file_system_proxy_traits::FileSystemProxy;
 use file_types::Byteable;
 
-use crate::file_analysis::file_system_proxy_traits::MetadataProxy;
 use crate::file_analysis::file_types::DirectoryEntry;
 
 pub(crate) mod file_system_proxy_traits;
@@ -38,9 +37,9 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, i
     }
 }
 
-fn is_hidden(file_operations: &impl FileSystemProxy, current_dir: &PathBuf) -> bool {
+fn is_hidden(_file_operations: &impl FileSystemProxy, current_dir: &PathBuf) -> bool {
     #[cfg(target_os = "windows")]
-    return file_operations.metadata(&current_dir).map(|m| (m.file_attributes() & 0b_10) == 0b_10).unwrap_or(true);
+    return _file_operations.metadata(&current_dir).map(|m| (m.file_attributes() & 0b_10) == 0b_10).unwrap_or(true);
 
     #[cfg(not(target_os = "windows"))]
     return current_dir.file_name().and_then(|name| name.to_str()).map(|name| name.starts_with(".")).unwrap_or(false);

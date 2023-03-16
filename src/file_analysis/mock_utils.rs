@@ -23,7 +23,7 @@ pub(crate) fn set_expect(
     let dir = PathBuf::from("current");
     let mut seq_read_dir = Sequence::new();
     expect_read_dir(num_directories, num_files, &mut mock_file_operations, dir.clone(), &mut seq_read_dir);
-    mock_file_operations.expect_metadata().times(num_files + num_directories + 1).returning(|_| {
+    mock_file_operations.expect_metadata().returning(|_| {
         let mut metadata = MockMetadataProxy::new();
         metadata.expect_len().return_const(1024 * 1024_u64);
         metadata.expect_file_attributes().return_const(0_u32);
