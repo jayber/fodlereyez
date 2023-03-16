@@ -105,7 +105,7 @@ fn create_entries_layout(
 fn create_root_layout(directory_entry: &DirectoryEntry) -> LinearLayout {
     LinearLayout::vertical()
         .child(
-            TextView::new("navigate: [→←↑↓], open: [Enter], open in FileExplorer: [Space], toggle [c]omments, [s]how hidden, exit: [Esc]")
+            TextView::new("navigate: [→←↑↓], open: [Enter], open in terminal/FileExplorer: [Space], toggle [c]omments, [s]how hidden, exit: [Esc]")
                 .style(Style::from(ColorStyle::front(Magenta))),
         )
         .child(TextView::new(format!("{}, size: {}", directory_entry.path().display(), directory_entry.len())))
