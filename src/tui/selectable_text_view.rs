@@ -12,8 +12,7 @@ use cursive::view::{CannotFocus, Nameable, Selector};
 use cursive::views::{DummyView, Layer, LinearLayout, TextView};
 use cursive::{Cursive, Printer, Vec2, View};
 
-use crate::file_analysis::file_types::Byteable;
-use crate::tui::{color_for_size, show};
+use crate::tui::show;
 
 /* todo this is really at least 2 structs, one for actual fs entries and one for meta entries like more and <other files...>
 eg page and page_size might only be necessary for more; comment and size for fs entries */
@@ -31,12 +30,11 @@ pub(crate) struct SelectableTextView {
 impl SelectableTextView {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        path: &Path, name: String, comment: String, size: Option<&Byteable>, mut style: Style, selectable: bool,
-        page_size: u8, page: usize, hide_comments: bool, show_hidden: bool,
+        path: &Path, name: String, comment: String, size: String, mut style: Style, selectable: bool, page_size: u8,
+        page: usize, hide_comments: bool, show_hidden: bool, color: Color,
     ) -> Self {
         let mut name_view = TextView::new(name);
-        let mut size_view = TextView::new(size.map_or("".to_string(), |v| v.to_string())).h_align(HAlign::Right);
-        let color = if let Some(size) = size { color_for_size(size.0) } else { Color::Rgb(255, 255, 255) };
+        let mut size_view = TextView::new(size).h_align(HAlign::Right);
 
         if !selectable {
             style = style.combine(Effect::Dim);

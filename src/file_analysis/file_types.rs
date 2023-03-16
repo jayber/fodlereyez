@@ -148,6 +148,14 @@ impl DirectoryEntry {
             DirectoryEntry::Link { .. } => None,
         }
     }
+    pub fn len_str(&self) -> String {
+        match self {
+            DirectoryEntry::File { len, .. } => len.to_string(),
+            DirectoryEntry::Folder { len, .. } => len.to_string(),
+            DirectoryEntry::Rollup { len, .. } => len.to_string(),
+            DirectoryEntry::Link { .. } => "--link--".to_string(),
+        }
+    }
     pub fn name(&self) -> String {
         fn get_file_name(buf: &PathBuf) -> String {
             buf.file_name().map_or(String::new(), |a| a.to_string_lossy().to_string())

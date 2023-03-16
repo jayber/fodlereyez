@@ -9,7 +9,7 @@ use cursive::{Cursive, With};
 use color::convert_file_size_to_color;
 use selectable_text_view::SelectableTextView;
 
-use crate::file_analysis::file_types::DirectoryEntry;
+use crate::file_analysis::file_types::{Byteable, DirectoryEntry};
 use crate::tui::patterns::PATTERNS;
 
 mod color;
@@ -107,7 +107,7 @@ fn create_root_layout(directory_entry: &DirectoryEntry) -> LinearLayout {
             TextView::new("navigate: [→←↑↓], open: [Enter], open in terminal/FileExplorer: [Space], toggle [c]omments, [s]how hidden, exit: [Esc]")
                 .style(Style::from(ColorStyle::front(Magenta))),
         )
-        .child(TextView::new(format!("{}, size: {}", directory_entry.path().display(), directory_entry.len().map(|val| val.0).unwrap_or(0))))
+        .child(TextView::new(format!("{}, size: {}", directory_entry.path().display(), directory_entry.len().unwrap_or(&Byteable(0)))))
 }
 
 fn create_more_entry(
@@ -117,13 +117,14 @@ fn create_more_entry(
         path,
         "⮯ more…".to_string(),
         String::new(),
-        None,
+        "".to_string(),
         Style::from(Effect::Simple),
         true,
         page_size,
         page + 1,
         hide_comments,
         show_hidden,
+        Color::Rgb(255, 255, 255),
     )
 }
 
@@ -135,13 +136,14 @@ fn create_back_entry(
             path,
             "⮬..".to_string(),
             String::new(),
-            None,
+            "".to_string(),
             Style::from(Effect::Simple),
             true,
             page_size,
             0,
             hide_comments,
             show_hidden,
+            Color::Rgb(255, 255, 255),
         )
     })
 }
@@ -153,7 +155,7 @@ fn create_view_entry(
         branch.path(),
         branch.name(),
         get_comment_for_entry(branch),
-        branch.len(),
+        branch.len_str(),
         match branch {
             DirectoryEntry::Folder { .. } => Style::from(Effect::Simple),
             DirectoryEntry::Link { .. } => Style::from(Effect::Simple),
@@ -170,6 +172,7 @@ fn create_view_entry(
         0,
         hide_comments,
         show_hidden,
+        branch.len().map_or(Color::Rgb(255, 255, 255), |size| color_for_size(size.0)),
     )
 }
 
