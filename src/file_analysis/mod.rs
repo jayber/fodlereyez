@@ -19,30 +19,32 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, i
         let mut entries = vec![];
         for entry in directory_entries {
             let entry = entry.expect("error in getting entry");
-            let dir = entry.path();
+            let entry_path = entry.path();
             if entry.file_type().expect("error getting file type").is_dir() {
-                let child = populate_tree(file_operations, dir, false);
+                let child = populate_tree(file_operations, entry_path, false);
                 len += child.len().0;
                 entries.push(child);
-            } else if let Ok(metadata) = file_operations.metadata(&dir) {
+            } else if let Ok(metadata) = file_operations.metadata(&entry_path) {
                 len += metadata.len();
                 let len = Byteable(metadata.len());
-                let hidden = is_hidden(metadata);
-                entries.push(DirectoryEntry::new_file(len, dir, hidden));
+                let hidden = (metadata.file_attributes() & 0b_10) == 0b_10;
+                entries.push(DirectoryEntry::new_file(len, entry_path, hidden));
             }
         }
-        let hidden = file_operations.metadata(&current_dir).map(|m| is_hidden(m)).unwrap_or(true);
+        let hidden = is_hidden(file_operations, &current_dir);
         DirectoryEntry::new_folder(Byteable(len), current_dir, hidden, entries, is_root)
     } else {
         DirectoryEntry::new_folder(Byteable(0), current_dir, false, vec![], is_root)
     }
 }
 
-#[cfg(target_os = "windows")]
-fn is_hidden(metadata: Box<dyn MetadataProxy>) -> bool { (metadata.file_attributes() & 0b_10) == 0b_10 }
+fn is_hidden(file_operations: &impl FileSystemProxy, current_dir: &PathBuf) -> bool {
+    #[cfg(target_os = "windows")]
+    return file_operations.metadata(&current_dir).map(|m| (m.file_attributes() & 0b_10) == 0b_10).unwrap_or(true);
 
-#[cfg(not(target_os = "windows"))]
-fn is_hidden(metadata: Box<dyn MetadataProxy>) -> bool { false }
+    #[cfg(not(target_os = "windows"))]
+    return current_dir.file_name().and_then(|name| name.to_str()).map(|name| name.starts_with(".")).unwrap_or(false);
+}
 
 #[cfg(test)]
 mod mock_utils;
