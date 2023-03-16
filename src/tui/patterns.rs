@@ -107,7 +107,7 @@ lazy_static! {
 
         //LINUX
         ("Contains virtual files in linux, which will have misleading sizes.", RegexSet::new([r"^\/proc$"])),
-        ("Devices, represented by files, such as hard drives and software devices.", RegexSet::new([r"^\/dev$"])),
+        ("Devices, represented by files, such as hard drives and software devices.", RegexSet::new([r"^/dev$"])),
         ("System-wide configuration files.", RegexSet::new([r"^\/etc$"])),
     ];
 }
