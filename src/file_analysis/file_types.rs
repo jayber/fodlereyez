@@ -291,6 +291,8 @@ mod tests {
         }
 
         mod find {
+            use std::path::MAIN_SEPARATOR;
+
             use super::*;
 
             #[test]
@@ -312,7 +314,7 @@ mod tests {
                 let mut entries = vec![];
                 entries.push(DirectoryEntry::new_folder(
                     Byteable(10),
-                    PathBuf::from("this\\this"),
+                    PathBuf::from(format!("this{}this", MAIN_SEPARATOR)),
                     false,
                     vec![],
                     false,
@@ -320,7 +322,7 @@ mod tests {
                 let entry = DirectoryEntry::new_folder(Byteable(0), PathBuf::from("this"), false, entries, true);
                 assert_eq!(
                     10,
-                    entry.find(&PathBuf::from("this\\this")).expect("to find other").len().expect("a length").0
+                    entry.find(&PathBuf::from(format!("this{}this", MAIN_SEPARATOR))).expect("to find other").len().expect("a length").0
                 );
             }
 
@@ -338,7 +340,7 @@ mod tests {
                 let that = DirectoryEntry::new_folder(Byteable(0), PathBuf::from("that"), false, vec![], false);
                 entries.push(that);
                 let entry = DirectoryEntry::new_folder(Byteable(0), PathBuf::from("this"), false, entries, true);
-                assert_eq!("that\\", entry.find(&PathBuf::from("that")).expect("to find other").name());
+                assert_eq!(format!("that{}", MAIN_SEPARATOR), entry.find(&PathBuf::from("that")).expect("to find other").name());
             }
         }
     }

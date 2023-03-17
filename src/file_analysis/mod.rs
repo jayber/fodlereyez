@@ -54,7 +54,7 @@ mod mock_utils;
 
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
+    use std::{error::Error, path::MAIN_SEPARATOR};
 
     use crate::file_analysis::{mock_utils, read_fs};
 
@@ -88,7 +88,7 @@ mod tests {
             assert_eq!(child.is_some(), true);
             let child = child.unwrap();
             assert_eq!(child.is_dir(), true);
-            assert_eq!(child.name(), "test\\");
+            assert_eq!(child.name(), format!("test{}",MAIN_SEPARATOR));
             assert_eq!(child.len().expect("a len").0, 0_u64);
             assert_eq!(iter.next().is_none(), true);
             Ok(())
@@ -107,13 +107,13 @@ mod tests {
             let child = iter.next();
             assert_eq!(child.is_some(), true);
             let entry = child.unwrap();
-            assert_eq!(entry.name(), "test\\");
+            assert_eq!(entry.name(), format!("test{}",MAIN_SEPARATOR));
             assert_eq!(entry.is_dir(), true);
 
             let child = iter.next();
             assert_eq!(child.is_some(), true);
             let entry1 = child.unwrap();
-            assert_eq!(entry1.name(), "test\\");
+            assert_eq!(entry1.name(), format!("test{}",MAIN_SEPARATOR));
             assert_eq!(entry1.is_dir(), true);
 
             assert_eq!(iter.next().is_some(), false);
@@ -140,7 +140,7 @@ mod tests {
             let rollup = iter.next();
             assert_eq!(rollup.is_some(), true);
             let child = rollup.unwrap();
-            assert_eq!(child.name(), "test\\");
+            assert_eq!(child.name(), format!("test{}",MAIN_SEPARATOR));
             assert_eq!(child.is_dir(), true);
             assert_eq!(child.len().expect("a len").0, 0_u64);
             Ok(())
@@ -172,14 +172,14 @@ mod tests {
             let child = child.unwrap();
             assert_eq!(child.is_dir(), true);
             assert_eq!(child.len().expect("a len").0, 0_u64);
-            assert_eq!(child.name(), "test\\");
+            assert_eq!(child.name(), format!("test{}",MAIN_SEPARATOR));
 
             let child = iter.next();
             assert_eq!(child.is_some(), true);
             let child = child.unwrap();
             assert_eq!(child.is_dir(), true);
             assert_eq!(child.len().expect("a len").0, 0_u64);
-            assert_eq!(child.name(), "test\\");
+            assert_eq!(child.name(), format!("test{}",MAIN_SEPARATOR));
 
             let child = iter.next();
             assert_eq!(child.is_some(), false);

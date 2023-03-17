@@ -26,7 +26,10 @@ pub(crate) fn set_expect(
     mock_file_operations.expect_metadata().returning(|_| {
         let mut metadata = MockMetadataProxy::new();
         metadata.expect_len().return_const(1024 * 1024_u64);
+
+        #[cfg(target_os = "windows")]
         metadata.expect_file_attributes().return_const(0_u32);
+        
         Ok(Box::new(metadata))
     });
     Ok((dir, mock_file_operations))
