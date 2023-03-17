@@ -111,9 +111,9 @@ lazy_static! {
         ("System-wide configuration files.", RegexSet::new([r"^/etc$"])),
         ("A home directory for each user to store their documents and other files.", RegexSet::new([r"^/home$"])),
         ("Essential library files.", RegexSet::new([r"^/lib$"])),
-        ("Removable media, like USBs.", RegexSet::new([r"^/media$"])),
+        ("Removable media, like USB drives.", RegexSet::new([r"^/media$"])),
         ("Contains virtual system files, that might have misleading sizes.", RegexSet::new([r"^/proc$",r"^/sys$"])),
-        ("This is not an actual file. Its size reflects the total addressable memory in the system.", RegexSet::new([r"^/proc/kcore$"])),
+        ("This is not an actual file. Its size reflects the total addressable memory for your architecture.", RegexSet::new([r"^/proc/kcore$"])),
         ("User applications and read-only data.", RegexSet::new([r"^/usr$"])),
         ("Writeable user application data.", RegexSet::new([r"^/var$"])),
     ];
