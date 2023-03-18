@@ -12,6 +12,12 @@ pub(crate) fn read_fs(current_dir: PathBuf, file_operations: &impl FileSystemPro
     populate_tree(file_operations, current_dir, true)
 }
 
+fn is_excluded(path: &PathBuf) -> bool {
+    use regex::RegexSet;
+    let regex = RegexSet::new([r"^/proc$", r"^/sys$", r"^/mnt/c$"]);
+    regex.map(|regex| regex.is_match(&path.display().to_string())).unwrap_or(false)
+}
+
 fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, is_root: bool) -> DirectoryEntry {
     if let Ok(directory_entries) = file_operations.read_dir(&current_dir) {
         let mut len = 0_u64;
@@ -20,10 +26,14 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, i
             let entry = entry.expect("error in getting entry");
             let entry_path = entry.path();
             let file_type = entry.file_type().expect("error getting file type");
-            if file_type.is_symlink() {
+            if is_excluded(&entry_path) {
+                println!("excluded: {}", entry_path.display());
+            } else if file_type.is_symlink() {
+                println!("symlink: {}", entry_path.display());
                 let hidden = is_hidden(file_operations, &entry_path);
                 entries.push(DirectoryEntry::new_link(entry_path, false, hidden));
             } else if file_type.is_dir() {
+                println!("reading: {}", entry_path.display());
                 let child = populate_tree(file_operations, entry_path, false);
                 len += child.len().map(|val| val.0).unwrap_or(0);
                 entries.push(child);
@@ -54,7 +64,8 @@ mod mock_utils;
 
 #[cfg(test)]
 mod tests {
-    use std::{error::Error, path::MAIN_SEPARATOR};
+    use std::error::Error;
+    use std::path::MAIN_SEPARATOR;
 
     use crate::file_analysis::{mock_utils, read_fs};
 
@@ -88,7 +99,7 @@ mod tests {
             assert_eq!(child.is_some(), true);
             let child = child.unwrap();
             assert_eq!(child.is_dir(), true);
-            assert_eq!(child.name(), format!("test{}",MAIN_SEPARATOR));
+            assert_eq!(child.name(), format!("test{}", MAIN_SEPARATOR));
             assert_eq!(child.len().expect("a len").0, 0_u64);
             assert_eq!(iter.next().is_none(), true);
             Ok(())
@@ -107,13 +118,13 @@ mod tests {
             let child = iter.next();
             assert_eq!(child.is_some(), true);
             let entry = child.unwrap();
-            assert_eq!(entry.name(), format!("test{}",MAIN_SEPARATOR));
+            assert_eq!(entry.name(), format!("test{}", MAIN_SEPARATOR));
             assert_eq!(entry.is_dir(), true);
 
             let child = iter.next();
             assert_eq!(child.is_some(), true);
             let entry1 = child.unwrap();
-            assert_eq!(entry1.name(), format!("test{}",MAIN_SEPARATOR));
+            assert_eq!(entry1.name(), format!("test{}", MAIN_SEPARATOR));
             assert_eq!(entry1.is_dir(), true);
 
             assert_eq!(iter.next().is_some(), false);
@@ -140,7 +151,7 @@ mod tests {
             let rollup = iter.next();
             assert_eq!(rollup.is_some(), true);
             let child = rollup.unwrap();
-            assert_eq!(child.name(), format!("test{}",MAIN_SEPARATOR));
+            assert_eq!(child.name(), format!("test{}", MAIN_SEPARATOR));
             assert_eq!(child.is_dir(), true);
             assert_eq!(child.len().expect("a len").0, 0_u64);
             Ok(())
@@ -172,14 +183,14 @@ mod tests {
             let child = child.unwrap();
             assert_eq!(child.is_dir(), true);
             assert_eq!(child.len().expect("a len").0, 0_u64);
-            assert_eq!(child.name(), format!("test{}",MAIN_SEPARATOR));
+            assert_eq!(child.name(), format!("test{}", MAIN_SEPARATOR));
 
             let child = iter.next();
             assert_eq!(child.is_some(), true);
             let child = child.unwrap();
             assert_eq!(child.is_dir(), true);
             assert_eq!(child.len().expect("a len").0, 0_u64);
-            assert_eq!(child.name(), format!("test{}",MAIN_SEPARATOR));
+            assert_eq!(child.name(), format!("test{}", MAIN_SEPARATOR));
 
             let child = iter.next();
             assert_eq!(child.is_some(), false);
