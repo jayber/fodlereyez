@@ -27,6 +27,8 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, i
             let entry_path = entry.path();
             let file_type = entry.file_type().expect("error getting file type");
             if is_excluded(&entry_path) {
+                let hidden = is_hidden(file_operations, &entry_path);
+                entries.push(DirectoryEntry::new_excluded(entry_path, file_type.is_dir(), hidden, is_root));
             } else if file_type.is_symlink() {
                 let hidden = is_hidden(file_operations, &entry_path);
                 entries.push(DirectoryEntry::new_link(entry_path, false, hidden));

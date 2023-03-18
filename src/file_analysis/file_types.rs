@@ -9,10 +9,14 @@ pub(crate) enum DirectoryEntry {
     Folder { path: PathBuf, len: Byteable, entries: Vec<DirectoryEntry>, is_root: bool, is_hidden: bool },
     Link { path: PathBuf, is_root: bool, is_hidden: bool },
     Rollup { path: PathBuf, len: Byteable, entries: Vec<DirectoryEntry> },
+    Excluded { path: PathBuf, is_dir: bool, is_hidden: bool, is_root: bool }
 }
 
 //statics
 impl DirectoryEntry {
+    pub(crate) fn new_excluded(path: PathBuf, is_dir: bool, is_hidden: bool, is_root: bool) -> DirectoryEntry {
+            DirectoryEntry::Excluded { path, is_dir, is_hidden, is_root }
+    }
     fn new_rollup(entries: Vec<DirectoryEntry>, path: PathBuf) -> DirectoryEntry {
         let len_sum = entries.iter().fold(0_u64, |a, b| b.len().map(|val| val.0).unwrap_or(0) + a);
         DirectoryEntry::Rollup { path, len: Byteable(len_sum), entries }
@@ -38,6 +42,7 @@ impl DirectoryEntry {
             DirectoryEntry::File { is_hidden, .. } => *is_hidden,
             DirectoryEntry::Link { is_hidden, .. } => *is_hidden,
             DirectoryEntry::Folder { is_hidden, .. } => *is_hidden,
+            DirectoryEntry::Excluded { is_hidden, .. } => *is_hidden,
             DirectoryEntry::Rollup { .. } => false,
         }
     }
@@ -46,6 +51,7 @@ impl DirectoryEntry {
             DirectoryEntry::File { .. } => false,
             DirectoryEntry::Folder { is_root, .. } => *is_root,
             DirectoryEntry::Link { is_root, .. } => *is_root,
+            DirectoryEntry::Excluded { is_root, .. } => *is_root,
             DirectoryEntry::Rollup { .. } => false,
         }
     }
@@ -55,12 +61,14 @@ impl DirectoryEntry {
             DirectoryEntry::Folder { path, .. } => path.as_path(),
             DirectoryEntry::Link { path, .. } => path.as_path(),
             DirectoryEntry::Rollup { path, .. } => path.as_path(),
+            DirectoryEntry::Excluded { path, .. } => path.as_path(),
         }
     }
     pub(crate) fn entries(&self) -> Option<&Vec<DirectoryEntry>> {
         match self {
             DirectoryEntry::File { .. } => None,
             DirectoryEntry::Link { .. } => None,
+            DirectoryEntry::Excluded { .. } => None,
             DirectoryEntry::Folder { entries, .. } => Some(entries),
             DirectoryEntry::Rollup { entries, .. } => Some(entries),
         }
@@ -68,6 +76,7 @@ impl DirectoryEntry {
     fn rollup(&mut self) {
         match self {
             DirectoryEntry::File { .. } => {}
+            DirectoryEntry::Excluded { .. } => {}
             DirectoryEntry::Link { .. } => {}
             DirectoryEntry::Rollup { .. } => {}
             DirectoryEntry::Folder { entries, path, .. } => {
@@ -109,6 +118,7 @@ impl DirectoryEntry {
         } else {
             match self {
                 DirectoryEntry::File { .. } => None,
+                DirectoryEntry::Excluded { .. } => None,
                 DirectoryEntry::Link { .. } => None,
                 DirectoryEntry::Folder { entries, .. } => find_entry(entries, match_path),
                 DirectoryEntry::Rollup { entries, .. } => find_entry(entries, match_path),
@@ -122,11 +132,13 @@ impl DirectoryEntry {
             DirectoryEntry::Folder { path, .. } => path.parent(),
             DirectoryEntry::Rollup { path, .. } => path.parent(),
             DirectoryEntry::Link { path, .. } => path.parent(),
+            DirectoryEntry::Excluded { path, .. } => path.parent(),
         }
     }
     pub fn has_children(&self) -> bool {
         match self {
             DirectoryEntry::File { .. } => false,
+            DirectoryEntry::Excluded { .. } => false,
             DirectoryEntry::Link { .. } => false,
             DirectoryEntry::Folder { entries, .. } => !entries.is_empty(),
             DirectoryEntry::Rollup { .. } => true,
@@ -138,6 +150,7 @@ impl DirectoryEntry {
             DirectoryEntry::Link { .. } => false,
             DirectoryEntry::Folder { .. } => true,
             DirectoryEntry::Rollup { .. } => false,
+            DirectoryEntry::Excluded { is_dir, .. } => *is_dir,
         }
     }
     pub fn len(&self) -> Option<&Byteable> {
@@ -146,6 +159,7 @@ impl DirectoryEntry {
             DirectoryEntry::Folder { len, .. } => Some(len),
             DirectoryEntry::Rollup { len, .. } => Some(len),
             DirectoryEntry::Link { .. } => None,
+            DirectoryEntry::Excluded { .. } => None,
         }
     }
     pub fn len_str(&self) -> String {
@@ -154,19 +168,24 @@ impl DirectoryEntry {
             DirectoryEntry::Folder { len, .. } => len.to_string(),
             DirectoryEntry::Rollup { len, .. } => len.to_string(),
             DirectoryEntry::Link { .. } => "-link-".to_string(),
+            DirectoryEntry::Excluded { .. } => "-excl-".to_string(),
         }
     }
     pub fn name(&self) -> String {
         fn get_file_name(buf: &PathBuf) -> String {
             buf.file_name().map_or(String::new(), |a| a.to_string_lossy().to_string())
         }
+        fn get_directory_name(buf: &PathBuf) -> String {
+            let mut name = get_file_name(buf);
+            name.push(std::path::MAIN_SEPARATOR);
+            name
+        }
         match self {
+            DirectoryEntry::Excluded { path, is_dir, .. } => if *is_dir { get_directory_name(path) } else { get_file_name(path) },
             DirectoryEntry::File { path, .. } => get_file_name(path),
             DirectoryEntry::Link { path, .. } => get_file_name(path),
             DirectoryEntry::Folder { path, .. } => {
-                let mut name = get_file_name(path);
-                name.push(std::path::MAIN_SEPARATOR);
-                name
+                get_directory_name(path)
             }
             DirectoryEntry::Rollup { .. } => String::from(ROLLUP_NAME),
         }
@@ -279,6 +298,7 @@ mod tests {
                 let result = entry.entries().expect("no entries");
                 assert_eq!(7, result.len());
                 match result.first().expect("first entry exists") {
+                    DirectoryEntry::Excluded { .. } => panic!("excluded found when expecting rollup"),
                     DirectoryEntry::File { .. } => panic!("file found when expecting rollup"),
                     DirectoryEntry::Folder { .. } => panic!("folder found when expecting rollup"),
                     DirectoryEntry::Link { .. } => panic!("link found when expecting rollup"),

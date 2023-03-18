@@ -159,11 +159,13 @@ fn create_view_entry(
         match branch {
             DirectoryEntry::Folder { .. } => Style::from(Effect::Simple),
             DirectoryEntry::Link { .. } => Style::from(Effect::Simple),
+            DirectoryEntry::Excluded { .. } => Style::from(Effect::Simple),
             DirectoryEntry::File { .. } => Style::from(Effect::Italic),
             DirectoryEntry::Rollup { .. } => Style::from(Effect::Italic),
         },
         match branch {
             DirectoryEntry::File { .. } => false,
+            DirectoryEntry::Excluded { .. } => false,
             DirectoryEntry::Link { .. } => false,
             DirectoryEntry::Folder { .. } => branch.has_children(),
             DirectoryEntry::Rollup { .. } => false, // todo this is just "in the meantime"
@@ -181,6 +183,7 @@ fn get_comment_for_entry(branch: &DirectoryEntry) -> String {
         DirectoryEntry::File { path, .. } => path.display().to_string(),
         DirectoryEntry::Link { path, .. } => path.display().to_string(),
         DirectoryEntry::Folder { path, .. } => path.display().to_string(),
+        DirectoryEntry::Excluded { path, .. } => path.display().to_string(),
         DirectoryEntry::Rollup { .. } => String::from(""),
     };
     let mut comment = String::new();
