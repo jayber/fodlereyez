@@ -1,5 +1,8 @@
 use std::path::PathBuf;
 
+use lazy_static::lazy_static;
+use regex::{Error, RegexSet};
+
 use file_system_proxy_traits::FileSystemProxy;
 use file_types::Byteable;
 
@@ -8,14 +11,16 @@ use crate::file_analysis::file_types::DirectoryEntry;
 pub(crate) mod file_system_proxy_traits;
 pub(crate) mod file_types;
 
+lazy_static! {
+    pub(crate) static ref EXCL_PATTERNS: Result<RegexSet, Error> = RegexSet::new([r"^/proc$", r"^/sys$", r"^/mnt/c$"]);
+}
+
 pub(crate) fn read_fs(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryEntry {
     populate_tree(file_operations, current_dir, true)
 }
 
 fn is_excluded(path: &PathBuf) -> bool {
-    use regex::RegexSet;
-    let regex = RegexSet::new([r"^/proc$", r"^/sys$", r"^/mnt/c$"]);
-    regex.map(|regex| regex.is_match(&path.display().to_string())).unwrap_or(false)
+    EXCL_PATTERNS.as_ref().map(|regex| regex.is_match(&path.display().to_string())).unwrap_or(false)
 }
 
 fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, is_root: bool) -> DirectoryEntry {
