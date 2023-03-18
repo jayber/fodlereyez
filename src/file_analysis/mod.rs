@@ -27,13 +27,10 @@ fn populate_tree(file_operations: &impl FileSystemProxy, current_dir: PathBuf, i
             let entry_path = entry.path();
             let file_type = entry.file_type().expect("error getting file type");
             if is_excluded(&entry_path) {
-                println!("excluded: {}", entry_path.display());
             } else if file_type.is_symlink() {
-                println!("symlink: {}", entry_path.display());
                 let hidden = is_hidden(file_operations, &entry_path);
                 entries.push(DirectoryEntry::new_link(entry_path, false, hidden));
             } else if file_type.is_dir() {
-                println!("reading: {}", entry_path.display());
                 let child = populate_tree(file_operations, entry_path, false);
                 len += child.len().map(|val| val.0).unwrap_or(0);
                 entries.push(child);
