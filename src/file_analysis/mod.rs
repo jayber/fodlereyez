@@ -12,7 +12,7 @@ pub(crate) mod file_system_proxy_traits;
 pub(crate) mod file_types;
 
 lazy_static! {
-    pub(crate) static ref EXCL_PATTERNS: Result<RegexSet, Error> = RegexSet::new([r"^/proc$", r"^/sys$", r"^/mnt/c$"]);
+    pub(crate) static ref EXCL_PATTERNS: Result<RegexSet, Error> = RegexSet::new([r"^/proc$", r"^/sys$", r"^/mnt/.*$"]);
 }
 
 pub(crate) fn read_fs(current_dir: PathBuf, file_operations: &impl FileSystemProxy) -> DirectoryEntry {
