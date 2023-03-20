@@ -37,9 +37,9 @@ c:\Users\james>fodlereyez.exe c:\
 
 If you don't provide a folder argument, it will default to the current folder.
 
-![An alternative listing shown on a terminal with purple background of an Ubuntu filesystem
-root. In the size column on the right, some entries show the text "-link-" or "-excl-" instead of
-a size](demo2.png)
+![An alternative listing shown on a terminal with dark grey background of a linux filesystem
+showing the .../SteamLibrary/steamapps/common directory. Entries have comments containing
+light-hearted descriptions of the games they contain.](demo4.png)
 
 * You can turn off comments, and show hidden files and folders with either command line arguments
   or ui commands.
@@ -55,7 +55,11 @@ a size](demo2.png)
 
 * Does not traverse symlinks, and excludes certain directories on linux containing virtual files
   or mount points (see final column in image above). However, you can still see the contents of
-  these directories by invoking the app with these directories or symlinks as the argument.
+  these entries by invoking the app with their path as the argument.
+
+![An alternative listing shown on a terminal with purple background of an wsl/Ubuntu filesystem
+root. In the size column on the right, some entries show the text "-link-" or "-excl-" instead of
+a size](demo2.png)
 
 Take a look at available command line options using `--help`
 
