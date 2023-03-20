@@ -41,7 +41,7 @@ If you don't provide a folder argument, it will default to the current folder.
 showing the .../SteamLibrary/steamapps/common directory. Entries have comments containing
 light-hearted descriptions of the games they contain.](demo4.png)
 
-* You can turn off comments, and show hidden files and folders with either command line arguments
+* You can turn off comments, and show hidden files and folders, with either command line arguments
   or ui commands.
 
 * You can drill down into subdirectories by left-clicking their name, or by selecting them using
