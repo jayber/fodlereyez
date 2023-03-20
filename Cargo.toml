@@ -11,7 +11,7 @@ entry in external app (explorer for Windows and gnome-terminal for linux).
 Symlinks are not traversed and will indicate no size. On linux, excludes directories that might be misleading or unwanted:
 /proc
 /sys
-/mnt/.*
+/mnt/\\w*
 However both links and excluded directories can be supplied as ROOT_DIRECTORY on command line and should function as expected."""
 
 [dependencies]
