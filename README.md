@@ -54,7 +54,7 @@ light-hearted descriptions of the games they contain.](demo4.png)
 * [Esc] will exit the app.
 
 * Does not traverse symlinks, and excludes certain directories on linux containing virtual files
-  or mount points (see final column in image above). However, you can still see the contents of
+  or mount points (see final column in image below). However, you can still see the contents of
   these entries by invoking the app with their path as the argument.
 
 ![An alternative listing shown on a terminal with purple background of an wsl/Ubuntu filesystem
