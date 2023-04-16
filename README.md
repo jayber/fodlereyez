@@ -1,6 +1,9 @@
 # FodlerEyez
+
 (as in toddler :baby:, and :eye:s)
 [download binary](https://github.com/jayber/fodlereyez/releases/latest)
+
+![Codecov](https://img.shields.io/codecov/c/github/jayber/fodlereyez)
 
 ### Welcome to the last text UI, folder and file size utility, for gamers, on Windows and Linux, with sarcastic comments, you will ever need.
 

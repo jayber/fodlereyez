@@ -19,6 +19,7 @@ cursive = { version = "0.20", default-features = false, features = ["crossterm-b
 clap = { version = "4.1.4", features = ["derive", "cargo", "wrap_help"] }
 regex = "1"
 lazy_static = "1.4.0"
+hsv = "0.1.1"
 
 [dev-dependencies]
 mockall = "0.11.3"
